@@ -1001,17 +1001,29 @@ impl Executor for PixardisVirtualMachine {
             
             // Report an error if an exception is thrown
             if result.is_err() {
+                let error = result.err().unwrap();
+                
                 match self.log_level() {
                     PixardisLogLevel::None => { },
                     _ => {  
-                        println!("Error: {:?}", result.err().unwrap());
+                        println!("Error: {:?}", error);
                         println!("@ ==> [{}] : {:?}", self.virtual_machine.program_counter(), instruction.clone());
                     }
                 }
                 
                 self.virtual_machine.state_set(VirtualMachineState::Stopped);
 
-                std::process::exit(1);
+                // For WASM targets, return the error
+                #[cfg(target_arch = "wasm32")]
+                {                    
+                    return Err(error);
+                }
+
+                // For non-WASM targets, exit the process
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    std::process::exit(1);
+                }                
             } else {
                 match self.log_level() {
                     PixardisLogLevel::Full => {println!("[{}] : {:?}", self.virtual_machine.program_counter(), instruction.clone())},

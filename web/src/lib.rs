@@ -1,22 +1,7 @@
+use serde_json;
+use serde_wasm_bindgen;
 use shared::pixardis::{PixardisInstruction, pixardis_print_code};
 use wasm_bindgen::prelude::*;
-use std::sync::Mutex;
-use std::collections::VecDeque;
-
-// // Global error collector
-// static ERROR_COLLECTOR: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
-
-// // Custom eprintln! replacement
-// macro_rules! capture_eprintln {
-//     ($($arg:tt)*) => {
-//         {
-//             let message = format!($($arg)*);
-//             ERROR_COLLECTOR.lock().unwrap().push_back(message.clone());
-//             // Also log to console for debugging
-//             web_sys::console::error_1(&message.into());
-//         }
-//     };
-// }
 
 // Import VM modules from the vm crate
 #[path = "../../vm/src/pixardis/mod.rs"]
@@ -214,10 +199,23 @@ impl WebVM {
         self.vm.load_program_from_source(assembly);
     }
     
-    pub fn step(&mut self, steps: usize) {
-        let _ = self.vm.step(steps);
+    pub fn step(&mut self, steps: usize) -> JsValue {
+        match self.vm.step(steps) {
+            Ok(()) => {
+                serde_wasm_bindgen::to_value(&serde_json::json!({
+                    "success": true,
+                    "error": null
+                })).unwrap()
+            },
+            Err(error) => {
+                serde_wasm_bindgen::to_value(&serde_json::json!({
+                    "success": false,
+                    "error": format!("{:?}", error)
+                })).unwrap()
+            }
+        }
     }
-    
+
     pub fn get_framebuffer(&self) -> Vec<u8> {
         let (width, height, colors) = self.vm.framebuffer();
         let mut rgb_data = Vec::with_capacity(width * height * 3);
@@ -239,8 +237,8 @@ pub fn create_vm(width: usize, height: usize) -> WebVM {
 }
 
 #[wasm_bindgen]
-pub fn step_vm(vm: &mut WebVM, steps: usize) {
-    vm.step(steps);
+pub fn step_vm(vm: &mut WebVM, steps: usize) -> JsValue {
+    vm.step(steps)
 }
 
 #[wasm_bindgen]
@@ -252,112 +250,3 @@ pub fn get_vm_framebuffer(vm: &WebVM) -> Vec<u8> {
 pub fn load_vm_program(vm: &mut WebVM, assembly: &str) {
     vm.load_program(assembly);
 }
-
-// #[macroquad::main("Pixardis Web IDE")]
-// async fn main() {
-//     let mut source_code = include_str!("../compiler/examples/bounce.ps").to_string();
-//     let mut compiled_code = include_str!("../compiler/examples/bounce.pad").to_string();
-//     let mut compilation_status = "Press F8 to compile".to_string();
-//     let mut debug_info = Vec::<String>::new();
-
-//     // Simple editor state
-//     let mut cursor_line = 0;
-//     let mut cursor_col = 0;
-//     let mut scroll_offset = 0;
-
-//     // Create VM
-//     let mut vm = PixardisVirtualMachine::new(64, 48);
-//     vm.log_level_set(PixardisLogLevel::None);
-//     vm.load_program_from_source(&compiled_code);
-    
-//     loop {
-//         // F8 compilation (keep this working!)
-//         if is_key_pressed(KeyCode::F8) {
-//             compilation_status = "Compiling...".to_string();
-//             debug_info.clear();
-            
-//             match compile_pixardis_source(&source_code) {
-//                 Ok(new_compiled_code) => {
-//                     compiled_code = new_compiled_code;
-//                     compilation_status = "✅ Compiled successfully!".to_string();
-                    
-//                     // Reload VM with new code
-//                     vm = PixardisVirtualMachine::new(64, 48);
-//                     vm.log_level_set(PixardisLogLevel::None);
-//                     vm.load_program_from_source(&compiled_code);
-//                 },
-//                 Err(error) => {
-//                     compilation_status = format!("❌ Error: {}", error);
-//                 }
-//             }
-//         }
-
-//         // Drawing
-//         clear_background(Color::from_rgba(34, 34, 34, 255));
-
-//         let screen_w = screen_width();
-//         let screen_h = screen_height();
-        
-//         // Left panel - Simple text editor
-//         let editor_width = screen_w * 0.5;
-//         draw_rectangle(10.0, 10.0, editor_width - 20.0, screen_h - 80.0, Color::from_rgba(40, 40, 40, 255));
-        
-//         draw_text("📝 Pixardis Code Editor", 20.0, 30.0, 20.0, WHITE);
-//         draw_text("F8: Compile | Arrow keys: Navigate | Type to edit", 20.0, screen_h - 50.0, 14.0, GRAY);
-//         draw_text(&compilation_status, 20.0, screen_h - 30.0, 14.0, 
-//                  if compilation_status.starts_with("✅") { GREEN } else { RED });
-
-//         // Draw the code with cursor
-//         for (i, line) in lines.iter().enumerate().skip(scroll_offset).take(25) {
-//             let y = 60.0 + (i - scroll_offset) as f32 * 16.0;
-//             if y >= screen_h - 100.0 { break; }
-            
-//             // Line number
-//             draw_text(&format!("{:3}:", i + 1), 25.0, y, 12.0, GRAY);
-            
-//             // Line content
-//             draw_text(line, 60.0, y, 12.0, WHITE);
-            
-//             // Cursor
-//             if i == cursor_line {
-//                 let cursor_x = 60.0 + cursor_col as f32 * 7.0;
-//                 draw_line(cursor_x, y - 12.0, cursor_x, y + 2.0, 2.0, YELLOW);
-//             }
-//         }
-
-//         // Right panel - VM (unchanged)
-//         let vm_x = editor_width + 10.0;
-//         let vm_width = screen_w - vm_x - 10.0;
-//         let vm_height = screen_h - 20.0;
-        
-//         draw_rectangle(vm_x, 10.0, vm_width, vm_height, BLACK);
-//         draw_text("Pixardis VM (64x48)", vm_x + 10.0, 30.0, 20.0, WHITE);
-        
-//         let _ = vm.step(100);
-        
-//         let (width, height, colours) = vm.framebuffer();
-//         let cell_size = (vm_width / width as f32).min((vm_height - 100.0) / height as f32);
-        
-//         let start_x = vm_x + (vm_width - width as f32 * cell_size) / 2.0;
-//         let start_y = 50.0 + (vm_height - 100.0 - height as f32 * cell_size) / 2.0;
-        
-//         for y in 0..height {
-//             for x in 0..width {
-//                 let colour = colours[y * width + x];
-//                 let r = ((colour >> 16) & 0xFF) as u8;
-//                 let g = ((colour >> 8) & 0xFF) as u8;
-//                 let b = (colour & 0xFF) as u8;
-                
-//                 draw_rectangle(
-//                     start_x + x as f32 * cell_size,
-//                     start_y + (height - y - 1) as f32 * cell_size,
-//                     cell_size,
-//                     cell_size,
-//                     Color::from_rgba(r, g, b, 255)
-//                 );
-//             }
-//         }
-
-//         next_frame().await;
-//     }
-// }

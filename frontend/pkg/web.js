@@ -210,10 +210,12 @@ function _assertClass(instance, klass) {
 /**
  * @param {WebVM} vm
  * @param {number} steps
+ * @returns {any}
  */
 export function step_vm(vm, steps) {
     _assertClass(vm, WebVM);
-    wasm.step_vm(vm.__wbg_ptr, steps);
+    const ret = wasm.step_vm(vm.__wbg_ptr, steps);
+    return ret;
 }
 
 /**
@@ -284,9 +286,11 @@ export class WebVM {
     }
     /**
      * @param {number} steps
+     * @returns {any}
      */
     step(steps) {
-        wasm.step_vm(this.__wbg_ptr, steps);
+        const ret = wasm.webvm_step(this.__wbg_ptr, steps);
+        return ret;
     }
     /**
      * @returns {Uint8Array}

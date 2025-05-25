@@ -1,12 +1,6 @@
 use shared::pixardis::PixardisInstruction;
-
 use std::collections::HashMap;
 
-// #[cfg(not(target_arch = "wasm32"))]
-// use rand::{
-//     rngs::ThreadRng, 
-//     Rng
-// };
 
 #[derive(Debug, Clone)]
 pub enum VirtualMachineError {

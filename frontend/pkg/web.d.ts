@@ -3,14 +3,14 @@
 export function compile_pixardis_source_with_errors(source: string): any;
 export function compile_pixardis_source(source: string): string;
 export function create_vm(width: number, height: number): WebVM;
-export function step_vm(vm: WebVM, steps: number): void;
+export function step_vm(vm: WebVM, steps: number): any;
 export function get_vm_framebuffer(vm: WebVM): Uint8Array;
 export function load_vm_program(vm: WebVM, assembly: string): void;
 export class WebVM {
   free(): void;
   constructor(width: number, height: number);
   load_program(assembly: string): void;
-  step(steps: number): void;
+  step(steps: number): any;
   get_framebuffer(): Uint8Array;
 }
 
@@ -21,14 +21,14 @@ export interface InitOutput {
   readonly compile_pixardis_source_with_errors: (a: number, b: number) => any;
   readonly compile_pixardis_source: (a: number, b: number) => [number, number, number, number];
   readonly __wbg_webvm_free: (a: number, b: number) => void;
+  readonly webvm_step: (a: number, b: number) => any;
   readonly webvm_get_framebuffer: (a: number) => [number, number];
   readonly create_vm: (a: number, b: number) => number;
-  readonly step_vm: (a: number, b: number) => void;
+  readonly step_vm: (a: number, b: number) => any;
   readonly get_vm_framebuffer: (a: number) => [number, number];
   readonly load_vm_program: (a: number, b: number, c: number) => void;
   readonly webvm_load_program: (a: number, b: number, c: number) => void;
   readonly webvm_new: (a: number, b: number) => number;
-  readonly webvm_step: (a: number, b: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;

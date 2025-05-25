@@ -102,7 +102,8 @@ export function setupEventHandlers() {
 }
 
 function getBounceCode() {
-    return `fun to_int(a:float) -> int {
+    return `// Bouncing ball example
+fun to_int(a:float) -> int {
     let b:int = 0;
     if (a > 0.0) {
         while (a > 0.5) {
@@ -115,10 +116,12 @@ function getBounceCode() {
             b = b - 1;
         }
     }
+
     return b;
 }
 
-fun draw_ball(x:float, y:float, r:float, c:colour) -> bool {
+fun draw_ball(x:float, y:float, r:float, c:colour) -> bool
+{
     let half_r:float = r / 2.0;
     let x1:int = to_int((x - half_r));
     let y1:int = to_int((y - half_r));
@@ -126,6 +129,7 @@ fun draw_ball(x:float, y:float, r:float, c:colour) -> bool {
 
     __clear #778899;
     __write_box x1, y1, r1, r1, c;
+
     return true;
 }
 
@@ -145,16 +149,13 @@ while (true) {
             velocity_y = 0.0 - velocity_y;
         }
     }
+
     result = draw_ball(x, y, r, #FFFFFF);
 }`;
 }
 
 function getNewFileCode() {
     return `// New Pixardis program
-fun main() {
-    __clear #000000;
-    
-    // Your code here
-    
-}`;
+    __clear #FFFFFF;
+    // Write your code here...`;
 }

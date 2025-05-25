@@ -1,17 +1,4 @@
-// Try importing everything first to see what's available
 import * as WebModule from '../pkg/web.js';
-
-console.log("Available exports:", Object.keys(WebModule));
-
-import { 
-    compile_pixardis_source, 
-    compile_pixardis_source_with_errors,
-    create_vm, 
-    step_vm, 
-    get_vm_framebuffer, 
-    load_vm_program 
-} from '../pkg/web.js';
-
 import { showCompilerErrors, hideCompilerErrors } from './errors.js'; 
 
 let vm = null;
@@ -143,10 +130,23 @@ function startVMLoop() {
         try {
             const currentTime = performance.now();
             
-            // Execute VM cycles
-            step_vm(vm, cyclesPerFrame);
+             // Execute VM cycles and check for errors
+            const vmResult = step_vm(vm, cyclesPerFrame);
             performanceStats.totalCycles += cyclesPerFrame;
             
+            const success = vmResult.get('success');
+            const error = vmResult.get('error');
+            
+            // Check if VM encountered an error
+            if (!success) {
+                console.error("VM Runtime Error:", error);
+                const statusBar = document.getElementById('status-bar');
+                statusBar.textContent = `❌ VM Runtime Error: ${error || 'Unknown error'}`;
+                statusBar.className = "status-bar status-error";
+                pauseVM();
+                return;
+            }
+
             // Get framebuffer data
             const framebuffer = get_vm_framebuffer(vm);
             
@@ -262,8 +262,15 @@ export function resumeVM() {
 export function stepVM() {
     if (!isRunning) {
         try {
-            step_vm(vm, 1);
+            const vmResult = step_vm(vm, 1);
+            const success = vmResult.get('success');
+            const error = vmResult.get('error');
             
+            if (!success) {
+                console.error("VM Step Error:", error);
+                return;
+            }
+
             // Render single frame
             const framebuffer = get_vm_framebuffer(vm);
             const imageData = ctx.createImageData(vmWidth, vmHeight);
