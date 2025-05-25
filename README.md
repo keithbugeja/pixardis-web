@@ -101,6 +101,18 @@ If it breaks, you get to keep both pieces.
 
 ## Final Final Note
 
+Yeah, it’s mostly in jest. Don’t take it personally — unless you wrote the original display firmware. Then yes, take it very personally.
+
+The compiler and VM were actually written 2–3 years ago.  
+I couldn’t release the source at the time without detonating a live university assignment.  
+Now the assignment's been retired and the embargo is lifted.  
+So here it is. 
 This project is held together by duct tape, compiler warnings, and poor decisions.  
 Yes, it runs. No, I don’t know why.  
+If the code’s ugly, that’s your problem. If it’s beautiful, that’s by accident.  
+
 Enjoy it, fork it, flame it, whatever. Just don’t @ me about lifetimes.
+
+This last part reads like a LinkedIn post.
+
+Agree?
