@@ -13,6 +13,12 @@ Use it. Don’t. I already won.
 
 ---
 
+## 🔥 Try It Live
+
+[**▶ Open Pixardis Web IDE**](https://keithbugeja.github.io/pixardis-web/frontend/index.html)
+
+---
+
 ## Features
 
 - ✍️ **Monaco Editor** – Because writing stack code deserves syntax highlighting  
