@@ -81,35 +81,6 @@ Because:
 
 ---
 
-## Flamebait ASCII
-
-```
-      ____  _            _           _     
-     |  _ \| | __ _  ___| | _____ __| |___ 
-     | |_) | |/ _` |/ __| |/ / __/ _` / __|
-     |  __/| | (_| | (__|   < (_| (_| \__ \\
-     |_|   |_|\__,_|\___|_|\_\___\__,_|___/
-
-    Pixardis: for when your hardware sucks and
-    JavaScript offends your ancestry.
-
-    ________________________________________
-   /                                        \\
-   |   "I could write this in Python!"      |
-   |                                        |
-   |   You could. It'd be slower, buggier,  |
-   |   and you'd ship it anyway.            |
-   \\________________________________________/
-           \\     
-            \\    (__) 
-             \\   (oo)  
-                 (__)  
-                 |  |  
-                 || |  <-- mooVM approved
-```
-
----
-
 ## License
 
 MIT, because the GPL takes too long to read and I have pixels to push.
@@ -118,5 +89,5 @@ MIT, because the GPL takes too long to read and I have pixels to push.
 
 ## Final Notes
 
-Made with Rust. Forged in spite. Tested on students.  
+Made with Rust. Forged in spite.
 If it breaks, you get to keep both pieces.
