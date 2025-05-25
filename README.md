@@ -77,7 +77,6 @@ Because:
 - That display was an insult to hardware
 - JavaScript isn’t a runtime, it’s a regret
 - Writing compilers is cheaper than therapy
-- Students needed to learn that abstraction is for cowards
 
 ---
 
