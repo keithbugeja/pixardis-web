@@ -21,10 +21,10 @@ Use it. Don’t. I already won.
 
 ## Features
 
-- ✍️ **Monaco Editor** – Because writing stack code deserves syntax highlighting  
-- 🦀 **Rust Compiler + VM** – Fast, safe, and deeply offended by garbage collection  
-- 🌐 **WebAssembly** – Makes your browser pretend it’s a real OS  
-- 🎨 **Canvas Output** – Because pixels still matter  
+- ✍️ **Monaco Editor** – Because syntax highlighting.  
+- 🦀 **Rust Compiler + VM** – 0% unsafe, 100% unsound. 
+- 🌐 **WebAssembly** – Makes your browser pretend it’s a real OS.
+- 🎨 **Canvas Output** – Because pixels still matter.  
 - 🧪 **Example Programs** – From `fibonacci` to `snake`, because why not?
 
 ---
@@ -96,3 +96,11 @@ MIT, because the GPL takes too long to read and I have pixels to push.
 
 Made with Rust. Forged in spite.
 If it breaks, you get to keep both pieces.
+
+---
+
+## Final Final Note
+
+This project is held together by duct tape, compiler warnings, and poor decisions.  
+Yes, it runs. No, I don’t know why.  
+Enjoy it, fork it, flame it, whatever. Just don’t @ me about lifetimes.
