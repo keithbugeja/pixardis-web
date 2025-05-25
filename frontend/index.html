@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Pixardis Web IDE</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="about-modal" class="modal">
+        <div class="modal-content about-modal">
+            <span class="close" id="close-about">&times;</span>
+
+            <div class="about-content">
+                <h2>🎮 Pixardis Web IDE</h2>
+
+                <div class="about-section">
+                <p>Sandro bought some piece-of-shit pixel display off AliExpress. Barely sent a signal without crying. No docs, no protocol, just dogshit. He wrote a spec for a stack VM so students could suffer like he did. I read it, laughed, and rewrote everything in Rust because his JavaScript VM ran like a wounded 386 on a heat stroke.</p>
+                <br>
+                <p>I bolted a compiler on it, wrote a VM that doesn’t suck, and shoved the whole thing into WebAssembly because apparently I hate myself. Now it runs in the browser. Compiles code. Pushes pixels. Kicks the hardware in the teeth.</p>
+                <br>
+                <p>Use it. Don’t. I already won.</p>
+                </div>
+
+                <div class="about-section">
+                    <h3>Tech Stack (if you care):</h3>
+                    <ul>
+                        <li>🦀 <strong>Rust</strong> – Because C++ wasn't angry enough</li>
+                        <li>🌐 <strong>WebAssembly</strong> – Browser pretending it's a real machine</li>
+                        <li>📝 <strong>Monaco Editor</strong> – What passes as an IDE these days</li>
+                        <li>🎨 <strong>Canvas</strong> – Pixel output. No shaders. No mercy.</li>
+                    </ul>
+                </div>
+
+                <div class="about-section">
+                    <h3>What can it do?</h3>
+                    <p>Push bytes around. Draw pixels. Abuse stack. Animate with a language no sane person asked for.</p>
+                    <p>It'll still outlive your web framework.</p>
+                </div>
+
+                <div class="about-section">
+                    <h3>Why does this exist?</h3>
+                    <p>Because that display was an insult to silicon.</p>
+                    <p>Because JavaScript isn't a runtime. It's regret.</p>
+                    <p>Because I need therapy.</p>
+                    <p>Because I can.</p>
+                    <p>Goddamn it, copilot, enough.</p>
+                </div>
+
+                <div class="about-footer">
+                    <p><em>Made in Rust. Forged in spite. If it breaks, you get to keep both pieces.</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ide-header">
+        <h1>🎮 Pixardis Web IDE</h1>
+        <span style="color: #888;">Retro Computer Development Environment</span>
+    </div>
+    
+    <div class="ide-content">
+        <!-- Left Panel: Code Editor -->
+        <div class="editor-panel">
+            <div class="editor-toolbar">
+                <button class="btn" id="compile-btn">🚀 Compile & Run</button>
+                <button class="btn secondary" id="load-bounce">Bounce Ball</button>
+                <button class="btn secondary" id="clear-editor">New File</button>
+                <button id="about-btn" class="about-button" title="About Pixardis IDE">ℹ️ About</button>
+            </div>
+            
+            <div id="monaco-editor"></div>
+        </div>
+        
+        <!-- Right Panel: VM Display -->
+        <div class="vm-panel">
+            <div class="vm-header">
+                <span>🖥️ Pixardis Virtual Machine</span>
+                <span style="color: #888; font-size: 11px;" id="vm-size-display">64×48 Display</span>
+                <select id="vm-size-select" class="btn secondary" style="background: #5a5a5a;">
+                    <option value="64,48">64×48 (Default)</option>
+                    <option value="128,96">128×96 (2x)</option>
+                    <option value="256,192">256×192 (4x)</option>
+                    <option value="320,240">320×240 (QVGA)</option>
+                    <option value="128,64">128×64 (Wide)</option>
+                </select>
+                <button class="btn secondary" id="reset-vm">Reset</button>
+            </div>
+            <div class="vm-controls">
+                <div class="control-group">
+                    <label for="cycles-slider">Cycles per frame:</label>
+                    <input type="range" id="cycles-slider" min="1" max="5000" value="1000" step="1">
+                    <span id="cycles-value">1000</span>
+                </div>
+
+                <div class="control-buttons">
+                    <button id="pause-btn">⏸️ Pause</button>
+                    <button id="step-btn" disabled>⏭️ Step</button>
+                </div>
+
+                <div class="performance-display">
+                    <span id="fps-display">FPS: 0</span>
+                    <span id="ips-display">IPS: 0</span>
+                </div>
+            </div>
+
+            <div class="vm-content">
+                <canvas id="vm-canvas" width="640" height="480"></canvas>
+                <div class="vm-info">
+                    <div>Resolution: 64×48 pixels</div>
+                    <div>Press F8 or click Compile & Run to execute</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="error-panel" id="error-panel" style="display: none;">
+        <div class="error-header">
+            <span>❌ Compilation Errors</span>
+            <button class="btn secondary" id="close-errors">✕</button>
+        </div>
+        <div class="error-content" id="error-content">
+            <!-- Error messages will be inserted here -->
+        </div>
+    </div>
+
+    <div class="status-bar" id="status-bar">
+        Ready to compile...
+    </div>
+
+    <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

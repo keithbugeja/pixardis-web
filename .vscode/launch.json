@@ -1,0 +1,59 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'chroma'",
+            "cargo": {
+                "args": [
+                    "build",
+                ],
+                "filter": {
+                    "name": "chroma",
+                    "kind": "bin"
+                }
+            },
+            "args": ["-i", "src/compiler/examples/rainbow.ps", "-o", "src/compiler/examples/rainbow.pad"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'chroma-vm'",
+            "cargo": {
+                "args": [
+                    "build",
+                ],
+                "filter": {
+                    "name": "chroma-vm",
+                    "kind": "bin"
+                }
+            },
+            "args": ["-i", "src/compiler/examples/snake.pad"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'chroma'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=chroma",
+                    "--package=chroma"
+                ],
+                "filter": {
+                    "name": "chroma",
+                    "kind": "bin"
+                }
+            },
+            "args": ["-i", "src/compiler/examples/rainbow.ps", "-o", "src/compiler/examples/rainbow.pad"],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

@@ -1,0 +1,82 @@
+/* Multi-line comment
+ * This function takes two integers and return true if
+ * the first argument is greater than the second.
+ * Otherwise if returns false.
+ */
+fun XGreaterY(x:int, y:int) -> bool {
+    let ans:bool = true;
+    if (y > x) { ans = false; }
+    return ans;
+}
+
+// Single-line comment
+// Same functionality as function above but using less code
+fun XGreaterY_2(x:int, y:int) -> bool {
+    return x > y;
+}
+
+// Allocates memory space for 4 variables.
+fun AverageOfTwo(x:int, y:int) -> int {
+    let t0:int = x + y;
+    let t1:int = t0 / 2;
+    return t1;
+}
+
+/*
+ * Same functionality as function above but using less code.
+ * Note the use of the brackets in the expression following 
+ * the return statement. Allocates space for 2 variables. 
+ */
+fun AverageOfTwo_2(x:int, y:int) -> int {
+    return (x + y) / 2; 
+}
+
+// Takes two integers and returns the max of the two.
+fun Max(x:int, y:int) -> int {
+    let m:int = x;
+    if (y > m) { m = y; }
+    return m;
+}
+
+/*
+ * This function takes two colours (players) and a max score. 
+ * A while loop is used to iteratively draw random numbers for the two
+ * players and advance (along the y-axis) the player that gets the
+ * highest score. Returns the winner (either 1 or 2) when max score is
+ * reached by any of the players.
+ */
+ 
+fun Race(p1_c:colour, p2_c:colour, score_max:int) -> int {
+    let p1_score:int = 0;
+    let p2_score:int = 0;
+  // while (Max(p1_score, p2_score) < score_max) //Alternative loop
+    while ((p1_score < score_max) and (p2_score < score_max))
+    {
+        let p1_toss:int = __randi 1000;
+        let p2_toss:int = __randi 1000;
+        if (p1_toss > p2_toss) {
+    	    p1_score = p1_score + 1;
+        } else { 
+    	    p2_score = p2_score + 1;
+        }
+        __pixel 1, p1_score, p1_c;
+        __pixel 2, p2_score, p2_c;
+    }
+
+    let winner:int = 1;
+    if (p2_score > p1_score) {
+        winner = 2;
+    }
+
+    return winner; 
+}
+
+// Execution (program entry point) starts at the first statement 
+// that is not a function declaration. This should go in the .main
+// function of PixIR. 
+
+let c1:colour = #00ff00; 	    // green
+let c2:colour = #0000ff; 	    // blue
+let m:int = __height; 		    // the height (y-values) of the pad 
+let w:int = Race(c1, c2, m);	// call function Race
+__print w;			            // prints value of expression to VM logs

@@ -1,0 +1,379 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.ide-header {
+    background: #2d2d30;
+    padding: 10px 20px;
+    border-bottom: 1px solid #3e3e42;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.ide-content {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.editor-panel {
+    width: 50%;
+    background: #1e1e1e;
+    border-right: 1px solid #3e3e42;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.editor-toolbar {
+    background: #2d2d30;
+    padding: 8px 15px;
+    border-bottom: 1px solid #3e3e42;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn {
+    background: #0e639c;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn:hover {
+    background: #1177bb;
+}
+
+.btn.secondary {
+    background: #5a5a5a;
+}
+
+.btn.secondary:hover {
+    background: #6a6a6a;
+}
+
+#code-editor {
+    flex: 1;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border: none;
+    padding: 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+}
+
+.vm-panel {
+    width: 50%;
+    background: #252526;
+    display: flex;
+    flex-direction: column;
+}
+
+.vm-header {
+    background: #2d2d30;
+    padding: 8px 15px;
+    border-bottom: 1px solid #3e3e42;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vm-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+#vm-canvas {
+    border: 2px solid #3e3e42;
+    border-radius: 4px;
+    background: #000;
+    image-rendering: pixelated;
+    max-width: 100%;
+    max-height: 70vh;
+}
+
+.status-bar {
+    background: #007acc;
+    color: white;
+    padding: 4px 15px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.status-error {
+    background: #f14c4c;
+}
+
+.status-success {
+    background: #89d185;
+}
+
+.vm-info {
+    margin-top: 15px;
+    text-align: center;
+    color: #888;
+    font-size: 12px;
+}
+
+/* Add this rule for the Monaco editor container */
+#monaco-editor {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
+/* Add at the end of the file */
+
+.error-panel {
+    background: #2d1b1b;
+    border-top: 1px solid #f14c4c;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.error-header {
+    background: #3d2525;
+    padding: 8px 15px;
+    border-bottom: 1px solid #f14c4c;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #f14c4c;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.error-content {
+    flex: 1;
+    padding: 10px 15px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.error-message {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #3d2525;
+    border-left: 3px solid #f14c4c;
+    border-radius: 3px;
+}
+
+.error-location {
+    color: #ffa500;
+    font-weight: bold;
+}
+
+.error-description {
+    color: #ffcccc;
+    margin-top: 4px;
+}
+
+.error-code {
+    background: #1a1a1a;
+    padding: 4px 8px;
+    margin-top: 4px;
+    border-radius: 2px;
+    color: #d4d4d4;
+    font-style: italic;
+}
+
+/* Error line highlighting */
+.error-line-highlight {
+    background-color: rgba(255, 0, 0, 0.1);
+    border-left: 3px solid #ff4444;
+}
+
+.error-line-margin {
+    background-color: rgba(255, 0, 0, 0.2);
+    width: 3px !important;
+}
+
+.error-message.clickable:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+.vm-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-group label {
+    color: #d4d4d4;
+    font-size: 12px;
+}
+
+#cycles-slider {
+    width: 120px;
+}
+
+#cycles-value {
+    color: #569cd6;
+    font-weight: bold;
+    min-width: 40px;
+}
+
+.control-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.control-buttons button {
+    padding: 6px 12px;
+    background: #0e639c;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.control-buttons button:hover:not(:disabled) {
+    background: #1177bb;
+}
+
+.control-buttons button:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
+.performance-display {
+    display: flex;
+    gap: 15px;
+}
+
+.performance-display span {
+    color: #4ec9b0;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+}
+
+.about-button {
+    background: #0e639c;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.about-button:hover {
+    background: #1177bb;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 600px;
+    position: relative;
+}
+
+.about-modal {
+    color: #d4d4d4;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+}
+
+.close:hover,
+.close:focus {
+    color: #fff;
+}
+
+.about-content h2 {
+    color: #569cd6;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.about-section {
+    margin-bottom: 20px;
+}
+
+.about-section h3 {
+    color: #4ec9b0;
+    margin-bottom: 10px;
+}
+
+.about-section ul {
+    padding-left: 20px;
+}
+
+.about-section li {
+    margin-bottom: 5px;
+}
+
+.about-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #444;
+}
+
+.about-footer em {
+    color: #ffa500;
+}

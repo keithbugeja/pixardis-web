@@ -1,0 +1,390 @@
+
+fun to_int(a:float) -> int {
+    let b:int = 0;
+
+    if ((a > -1.0) && (a < 1.0)) {
+        return 0;
+    }
+
+    if (a > 0.0) { 
+        while (a > 0.0) {
+            a = a - 1.0;
+            b = b + 1;
+        }
+    } else {
+        while (a < 0.0) {
+            a = a + 1.0;
+            b = b - 1;
+        }
+    }
+
+    return b;
+}
+
+fun idiv(n:int, d:int) -> int
+{
+    let r:int = 0;
+
+    while (n >= d) {
+        n = n - d;
+        r = r + 1;
+    }
+
+    return r;
+}
+
+fun mod(n:int, d:int) -> int
+{
+    while (n >= d) {
+        n = n - d;
+    }
+
+    return n;
+}
+
+fun abs(a:float) -> float 
+{
+    if (a >= 0.0) {
+        return a;
+    }
+
+    return 0.0 - a;
+}
+
+fun draw_colon(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y + 1, c;    c=c+g;
+    __write x, y + 2, c;    c=c+g;
+    __write x, y + 4, c;    c=c+g;
+    __write x, y + 5, c;
+    
+    return true;
+}
+
+fun draw_0(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x + 1, y + 1, c;
+    __write x - 1, y + 1, c;    c=c+g;
+    __write x + 1, y + 2, c; 
+    __write x - 1, y + 2, c;    c=c+g;
+    __write x + 1, y + 3, c; 
+    __write x - 1, y + 3, c;    c=c+g;
+    __write x + 1, y + 4, c; 
+    __write x - 1, y + 4, c;    c=c+g;
+    __write x, y + 5, c; 
+
+    return true;    
+}
+
+fun draw_1(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;        c=c+g;
+    __write x, y + 1, c;    c=c+g;
+    __write x, y + 2, c;    c=c+g;
+    __write x, y + 3, c;    c=c+g;
+    __write x, y + 4, c;    
+    __write x - 1, y + 4, c;    c=c+g;
+    __write x, y + 5, c;
+    
+    
+    return true;
+}
+
+fun draw_2(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x + 1, y, c;    
+    __write x - 1, y, c; 
+    __write x - 1, y + 1, c;    c=c+g;
+    __write x, y + 2, c;        c=c+g;
+    __write x + 1, y + 3, c;    c=c+g;
+    __write x + 1, y + 4, c;    
+    __write x - 1, y + 4, c;    c=c+g;
+    __write x, y + 5, c;        
+
+    return true;    
+}
+
+fun draw_3(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x + 1, y + 1, c;
+    __write x - 1, y + 1, c;    c=c+g;
+    __write x + 1, y + 2, c;    c=c+g;
+    __write x, y + 3, c;        c=c+g;
+    __write x + 1, y + 4, c;    c=c+g;
+    __write x + 1, y + 5, c;    
+    __write x, y + 5, c; 
+    __write x - 1, y + 5, c; 
+
+    return true;    
+}
+
+fun draw_4(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x, y + 1, c;        c=c+g;
+    __write x - 2, y + 2, c;
+    __write x - 1, y + 2, c;
+    __write x, y + 2, c;    
+    __write x + 1, y + 2, c;    c=c+g;
+    __write x - 2, y + 3, c;
+    __write x, y + 3, c;    c=c+g;
+    __write x - 1, y + 4, c;
+    __write x, y + 4, c;    c=c+g;
+    __write x, y + 5, c;
+    
+    return true;
+}
+
+fun draw_5(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x + 1, y + 1, c;
+    __write x - 1, y + 1, c;    c=c+g;
+    __write x + 1, y + 2, c;    c=c+g;
+    __write x, y + 3, c;        c=c+g;
+    __write x - 1, y + 4, c;    c=c+g;
+    __write x + 1, y + 5, c;    
+    __write x, y + 5, c; 
+    __write x - 1, y + 5, c; 
+
+    return true;    
+}
+
+fun draw_6(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x + 1, y + 1, c;
+    __write x - 1, y + 1, c;    c=c+g;
+    __write x + 1, y + 2, c;    
+    __write x - 1, y + 2, c;    c=c+g;
+    __write x, y + 3, c;        
+    __write x - 1, y + 3, c;    c=c+g;
+    __write x - 1, y + 4, c;    c=c+g;
+    __write x + 1, y + 5, c;    
+    __write x, y + 5, c; 
+
+    return true;    
+}
+
+fun draw_7(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x, y + 1, c;        c=c+g;
+    __write x, y + 2, c;        c=c+g;
+    __write x, y + 3, c;        c=c+g;
+    __write x, y + 4, c;        c=c+g;
+    __write x, y + 5, c;        
+    __write x - 1, y + 5, c;
+    __write x - 2, y + 5, c;
+    
+    return true;
+}
+
+fun draw_8(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x, y, c;            c=c+g;
+    __write x + 1, y + 1, c;
+    __write x - 1, y + 1, c;    c=c+g;
+    __write x + 1, y + 2, c;    
+    __write x - 1, y + 2, c;    c=c+g;
+    __write x, y + 3, c;        c=c+g;
+    __write x - 1, y + 4, c;    
+    __write x + 1, y + 4, c;    c=c+g;
+    __write x, y + 5, c; 
+
+    return true;    
+}
+
+fun draw_9(x:int, y:int, c:colour) -> bool 
+{
+    let g:colour = #101010;
+
+    __write x - 1, y, c;    
+    __write x, y, c;            c=c+g;
+    __write x + 1, y + 1, c;    c=c+g;
+    __write x, y + 2, c;        
+    __write x + 1, y + 2, c;    c=c+g;
+    __write x + 1, y + 3, c;    
+    __write x - 1, y + 3, c;    c=c+g;
+    __write x + 1, y + 4, c;
+    __write x - 1, y + 4, c;    c=c+g;
+    __write x, y + 5, c;
+
+    return true;
+}
+
+fun sin(x:float) -> float 
+{
+    let b:float = 1.2732395447;
+    let c:float = 0.0 - 0.4052847346;
+
+    return (b * x) + (c * x * abs(x));
+}
+
+fun cos(x:float) -> float
+{
+    return sin(1.5707963268 - x);
+}
+
+fun draw_digit(d:int, x:int, y:int, c:colour) -> bool 
+{
+    let result:bool = true;
+
+    if (d == 0) {
+        result = draw_0(x, y, c);
+    } else {
+        if (d == 1) {
+            result = draw_1(x, y, c);
+        } else {
+            if (d == 2) {
+                result = draw_2(x, y, c);
+            } else {
+                if (d == 3) {
+                    result = draw_3(x, y, c);
+                } else {
+                    if (d == 4) {
+                        result = draw_4(x, y, c);
+                    } else {
+                        if (d == 5) {
+                            result = draw_5(x, y, c);
+                        } else {
+                            if (d == 6) {
+                                result = draw_6(x, y, c);
+                            } else { 
+                                if (d == 7) {
+                                    result = draw_7(x, y, c);
+                                } else {
+                                    if (d == 8) { 
+                                        result = draw_8(x, y, c);
+                                    } else {
+                                        if (d == 9) {
+                                            result = draw_9(x, y, c);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+let result:bool = false;
+let c:colour = #8899AA;
+
+let h:int = 23;
+let m:int = 32;
+let s:int = 21;
+let ms:int = 0;
+
+__clear #333333;
+
+let h1:int = 0;
+let h2:int = 0;
+let m1:int = 0;
+let m2:int = 0;
+let s1:int = 0;
+let s2:int = 0;
+
+let ag:float = 0.0;
+let sn:float = 0.0;
+let cs:float = 0.0;
+
+let v:int = 0;
+let rad:int = 0;
+let ksi:int = 0;
+let half_w: int = (__width / 2) as int;
+let half_h: int = (__height / 2) as int;
+let text_h: int = 8;
+let wave_colour:colour = #303030;
+
+while (true) {
+    h1 = idiv(h, 10);
+    h2 = mod(h, 10);
+
+    m1 = idiv(m, 10);
+    m2 = mod(m, 10);
+
+    s1 = idiv(s, 10);
+    s2 = mod(s, 10);
+
+    //
+    // Draw digital face
+    //
+
+    if (ms == 0) {
+        // __clear #333333;
+        __write_box 0, 14, __width, 8, #333333;
+
+        result = draw_digit(h1, 2, 15, c);
+        result = draw_digit(h2, 7, 15, c);
+
+        result = draw_colon(12, 15, c);
+
+        result = draw_digit(m1, 16, 15, c);
+        result = draw_digit(m2, 21, 15, c);
+
+        result = draw_colon(25, 15, c);
+
+        result = draw_digit(s1, 29, 15, c);
+        result = draw_digit(s2, 33, 15, c);
+
+    }
+
+    // for (let v:int = 0; v < __width; v = v + 1) 
+    {
+        v = mod(v + 1, __width);
+        ag = ag + 0.05;
+        
+        if (ag > 3.14) {
+            ag = ag - 6.28;
+        }
+
+        sn = sin(ag);
+
+        ksi = to_int(16.0 + (sn * 15.0));
+        rad = 2; //to_int(abs(sn * 5.0)) + 1;
+
+        __write_box v, ksi, rad, rad, wave_colour;
+        __write_box __width - v, 34 - ksi, rad, rad, wave_colour;
+
+        wave_colour = wave_colour + #011002;
+    }
+
+    //
+    // Update time
+    //
+    // __delay 1;
+
+    ms = mod(ms + 1, 8);
+    if (ms == 0) { s = mod(s + 1, 60); }
+    if (s == 0) { m = mod(m + 1, 60); }
+    if (m == 0) { h = mod(h + 1, 24); }
+}

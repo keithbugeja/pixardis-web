@@ -1,0 +1,86 @@
+__clear #000000;
+
+let posX: int = __randi __width;
+let posY: int = __randi __height;
+
+let upDirection: bool = false;
+let rightDirection: bool = true;
+
+let col: colour = #0000ff;
+let red: colour = #010000;
+let green: colour = #000100;
+let blue: colour = #000001;
+
+let phase: int = 1;
+let count: int = 0;
+
+while(true) 
+{
+    __pixel posX, posY, col;
+
+    // If we hit a wall we update the direction
+    if(posX == 0){
+        rightDirection = true;
+    }
+    if(posX == __width-1){
+        rightDirection = false;
+    }
+    if(posY == 0){
+        upDirection = true;
+    }
+    if(posY == __height-1){
+        upDirection = false;
+    }
+
+    if( (__randi 2) == 0)
+    {
+        if(rightDirection){
+            posX = posX +1;
+        } else {
+            posX = posX -1;
+        }
+    }else{
+        if(upDirection){
+            posY = posY +1;
+        }else{
+            posY = posY -1;
+        }
+    }
+
+    if (count == 255) {
+        phase = phase + 1;
+
+        if (phase == 7) { // wrap around
+            phase = 1;
+        }
+
+        count = 0;  // reset count
+    }
+    
+    // Update colour according to phase
+    if (phase == 1) {
+        col = col + red;
+    } else {
+        if (phase == 2) {
+            col = col - blue;
+        } else {
+            if(phase == 3) {
+                col = col + green;
+            } else {
+                if (phase == 4) {
+                    col = col - red;
+                } else {
+                    if(phase == 5) {
+                        col = col + blue;
+                    } else {
+                        if (phase == 6) {
+                            col = col - green;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    count = count + 1;
+}

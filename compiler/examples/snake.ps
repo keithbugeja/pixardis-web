@@ -1,0 +1,242 @@
+let boardColour: colour = #7CFC00;
+let appleColour: colour = #C7372F;
+let snakeColour: colour = #228B22;
+
+// clear board with board colour
+__pixelr 0, 0, __width, __height, boardColour;
+
+// generate head of snake
+let headx:int = __randi __width;
+let heady: int = __randi __height;
+__pixel headx, heady, snakeColour;    // paint snake
+
+// generate apple
+let applex:int = __randi __width;
+let appley:int = __randi __height;
+__pixel applex, appley, appleColour;    // paint apple
+
+/* tail of snake
+ * since no arrays are in language yet, we have to encode each tail variable individually
+ */
+let tail1x:int = -1;
+let tail1y:int = -1;
+let tail2x:int = -1;
+let tail2y:int = -1;
+let tail3x:int = -1;
+let tail3y:int = -1;
+let tail4x:int = -1;
+let tail4y:int = -1;
+let tail5x:int = -1;
+let tail5y:int = -1;
+
+// mod function for calculating position to wrap around!
+fun mod(num:int, div:int) -> int{
+    if(num < 0){
+        while(num < 0){
+            num = num + div;
+        }
+        return num;
+    }else{
+        while(div <= num){
+            num = num - div;
+        }
+        return num;
+    }
+}
+
+
+fun min(a:int, b:int) -> int{
+    if(a<b){
+        return a;
+    }else{
+        return b;
+    }
+}
+
+// Function overloading here, mod with one parameter returns positive of parameter
+fun abs(a:int) -> int{
+    if(a>=0){
+        return a;
+    }else{
+        return -a;
+    }
+}
+
+// to calculate the distance of points in our display
+// it is not as simple as the absolute value, since our space wraps around!
+fun distance(a:int, b:int, space:int) -> int{
+    let dist:int = abs(b-a);
+    return min(dist, space-(dist));
+}
+
+fun shortestPath(a:int, b:int, space:int) -> int{
+    // first we check whether the shortest path is through the wall, or directly
+    if(distance(a,b,space) == abs(b-a)){    // direct path
+        if((b-a) > 0){
+            return 1;
+        }else{
+            return -1;
+        }
+    }else{  // wall path
+        if((b-a) > 0){
+            return -1;
+        }else{
+            return 1;
+        }
+    }
+}
+
+// stores whether program has finished
+let finish:bool = false;
+
+let newheady: int = heady;
+let newheadx: int = headx;
+let maxApples: int = 10;
+let applesEaten: int = 0;
+while(finish == false){
+    if((headx == applex) and (heady == appley)){
+        applesEaten = applesEaten +1; // nom nom nom we ate an apple
+        __print applesEaten;
+        if(tail5x !=-1){
+            if(maxApples == applesEaten){
+                finish = true;
+            }
+        }else{
+            // make one of the tails not -1, so they take on value of next tail in next move
+            if(tail2x == -1){
+                tail2x = headx;
+                tail2y = heady;
+            }else{
+                if(tail3x == -1){
+                    tail3x = tail2x;
+                    tail3y = tail2y;
+                }else{
+                    if(tail4x == -1){
+                        tail4x = tail3x;
+                        tail4y = tail3y;
+                    }else{
+                        tail5x = tail4x;
+                        tail5y = tail4y;
+                    }
+                }
+            }
+        }
+
+
+        // new APPLE!
+        applex = __randi __width;
+        appley = __randi __height;
+        __pixel applex, appley, appleColour;    // paint apple
+    }else{
+        let up:bool = false;
+        if(headx == applex){
+            up = true;  // all is left to go upwards
+        }else{
+            if(heady == appley){
+                up = false;
+            }else{
+                // Otherwise pick randomly which direction to face in
+                let ran:int = __randi 2;
+                if(ran == 0){
+                    up = true;
+                }   // otherwise up = false as it is set initially
+            }
+        }
+
+        newheady = heady;
+        newheadx = headx;
+        // updating head of snake
+        if(up){
+            // mod for wrap around !
+            newheady = mod(heady + shortestPath(heady, appley, __height), __height);
+        }else{
+            newheadx = mod(headx + shortestPath(headx, applex, __width), __width);
+        }
+
+        // here we just go any direction that works...
+        if((__read newheadx, newheady) == snakeColour){
+            let maybeheadx: int = headx;
+            let maybeheady: int = heady;
+
+            if(up){ // try to move to side
+                maybeheadx =  mod(maybeheadx + shortestPath(maybeheadx, applex, __width), __width);
+                if((__read maybeheadx, maybeheady) == snakeColour){
+                    // go in other direction
+                    newheadx = mod(maybeheadx - shortestPath(maybeheadx, applex, __width), __width);
+                    newheady = maybeheady;
+                }else{
+                    newheadx = maybeheadx;
+                    newheady = maybeheady;
+                }
+            }else{  // try to move upwards
+                maybeheady = mod(maybeheady + shortestPath(maybeheady, appley, __height), __height);
+                if((__read maybeheadx, maybeheady) == snakeColour){
+                    // go in other direction
+                    newheady = mod(maybeheady - shortestPath(maybeheady, appley, __height), __height);
+                    newheadx = maybeheadx;
+                }else{
+                    newheadx = maybeheadx;
+                    newheady = maybeheady;
+                }
+            }
+        }
+
+        // now we update our positions
+        let lastx: int = headx;
+        let lasty: int = heady;
+
+        if(tail5x != -1){
+            lastx = tail5x;
+            lasty = tail5y;
+
+            tail5x = tail4x;
+            tail5y = tail4y;
+            tail4x = tail3x;
+            tail4y = tail3y;
+            tail3x = tail2x;
+            tail3y = tail2y;
+            tail2x = headx;
+            tail2y = heady;
+        }else{
+            if(tail4x != -1){
+                lastx = tail4x;
+                lasty = tail4y;
+
+                tail4x = tail3x;
+                tail4y = tail3y;
+                tail3x = tail2x;
+                tail3y = tail2y;
+                tail2x = headx;
+                tail2y = heady;
+            }else{
+                if(tail3x != -1){
+                    lastx = tail3x;
+                    lasty = tail3y;
+
+                    tail3x = tail2x;
+                    tail3y = tail2y;
+                    tail2x = headx;
+                    tail2y = heady;
+                }else{
+                    if(tail2x != -1){
+                        lastx = tail2x;
+                        lasty = tail2y;
+
+                        tail2x = headx;
+                        tail2y = heady;
+                    }
+                }
+            }
+        }
+
+        headx = newheadx;
+        heady = newheady;
+
+
+        // moving forward a step!
+        __pixel newheadx, newheady, snakeColour;
+        __delay 1;
+        // removing old tail
+        __pixel lastx, lasty, boardColour;
+    }
+}

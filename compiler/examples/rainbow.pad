@@ -1,0 +1,353 @@
+.main
+push 4
+jmp
+halt
+push 10
+oframe
+push #000000
+clear
+width
+irnd
+push 0
+push 0
+st
+height
+irnd
+push 1
+push 0
+st
+push 0
+push 2
+push 0
+st
+push 1
+push 3
+push 0
+st
+push #0000ff
+push 4
+push 0
+st
+push #010000
+push 5
+push 0
+st
+push #000100
+push 6
+push 0
+st
+push #000001
+push 7
+push 0
+st
+push 1
+push 8
+push 0
+st
+push 0
+push 9
+push 0
+st
+push 1
+push #PC+4
+cjmp2
+push #PC+298
+jmp
+push 0
+oframe
+push [4:1]
+push [1:1]
+push [0:1]
+pixel
+push 0
+push [0:1]
+eq
+push #PC+4
+cjmp2
+push #PC+9
+jmp
+push 0
+oframe
+push 1
+push 3
+push 2
+st
+cframe
+push 1
+width
+sub
+push [0:1]
+eq
+push #PC+4
+cjmp2
+push #PC+9
+jmp
+push 0
+oframe
+push 0
+push 3
+push 2
+st
+cframe
+push 0
+push [1:1]
+eq
+push #PC+4
+cjmp2
+push #PC+9
+jmp
+push 0
+oframe
+push 1
+push 2
+push 2
+st
+cframe
+push 1
+height
+sub
+push [1:1]
+eq
+push #PC+4
+cjmp2
+push #PC+9
+jmp
+push 0
+oframe
+push 0
+push 2
+push 2
+st
+cframe
+push 0
+push 2
+irnd
+eq
+push #PC+4
+cjmp2
+push #PC+32
+jmp
+push 0
+oframe
+push [3:2]
+push #PC+4
+cjmp2
+push #PC+13
+jmp
+push 0
+oframe
+push 1
+push [0:3]
+add
+push 0
+push 3
+st
+cframe
+push #PC+11
+jmp
+push 0
+oframe
+push 1
+push [0:3]
+sub
+push 0
+push 3
+st
+cframe
+cframe
+push #PC+30
+jmp
+push 0
+oframe
+push [2:2]
+push #PC+4
+cjmp2
+push #PC+13
+jmp
+push 0
+oframe
+push 1
+push [1:3]
+add
+push 1
+push 3
+st
+cframe
+push #PC+11
+jmp
+push 0
+oframe
+push 1
+push [1:3]
+sub
+push 1
+push 3
+st
+cframe
+cframe
+push 255
+push [9:1]
+eq
+push #PC+4
+cjmp2
+push #PC+29
+jmp
+push 0
+oframe
+push 1
+push [8:2]
+add
+push 8
+push 2
+st
+push 7
+push [8:2]
+eq
+push #PC+4
+cjmp2
+push #PC+9
+jmp
+push 0
+oframe
+push 1
+push 8
+push 3
+st
+cframe
+push 0
+push 9
+push 2
+st
+cframe
+push 1
+push [8:1]
+eq
+push #PC+4
+cjmp2
+push #PC+13
+jmp
+push 0
+oframe
+push [5:2]
+push [4:2]
+add
+push 4
+push 2
+st
+cframe
+push #PC+105
+jmp
+push 0
+oframe
+push 2
+push [8:2]
+eq
+push #PC+4
+cjmp2
+push #PC+13
+jmp
+push 0
+oframe
+push [7:3]
+push [4:3]
+sub
+push 4
+push 3
+st
+cframe
+push #PC+84
+jmp
+push 0
+oframe
+push 3
+push [8:3]
+eq
+push #PC+4
+cjmp2
+push #PC+13
+jmp
+push 0
+oframe
+push [6:4]
+push [4:4]
+add
+push 4
+push 4
+st
+cframe
+push #PC+63
+jmp
+push 0
+oframe
+push 4
+push [8:4]
+eq
+push #PC+4
+cjmp2
+push #PC+13
+jmp
+push 0
+oframe
+push [5:5]
+push [4:5]
+sub
+push 4
+push 5
+st
+cframe
+push #PC+42
+jmp
+push 0
+oframe
+push 5
+push [8:5]
+eq
+push #PC+4
+cjmp2
+push #PC+13
+jmp
+push 0
+oframe
+push [7:6]
+push [4:6]
+add
+push 4
+push 6
+st
+cframe
+push #PC+21
+jmp
+push 0
+oframe
+push 6
+push [8:6]
+eq
+push #PC+4
+cjmp2
+push #PC+11
+jmp
+push 0
+oframe
+push [6:7]
+push [4:7]
+sub
+push 4
+push 7
+st
+cframe
+cframe
+cframe
+cframe
+cframe
+cframe
+push 1
+push [9:1]
+add
+push 9
+push 1
+st
+cframe
+push #PC-299
+jmp
+cframe
+halt

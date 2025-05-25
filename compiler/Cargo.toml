@@ -1,0 +1,13 @@
+[package]
+name = "compiler"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "chroma"
+path = "src/main.rs"
+
+[dependencies]
+shared = { path = "../shared" }
+clap.workspace = true
+regex.workspace = true

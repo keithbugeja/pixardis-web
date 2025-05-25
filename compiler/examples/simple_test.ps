@@ -1,0 +1,16 @@
+fun say_hello(x:int, y:int, w:int, h:int, c:colour) -> bool {
+	__write_box x, y, w, h, c;
+
+	return true;
+}
+
+for (let x:int = 1; x < 26; x = x + 3)
+{
+	__write_box x, 2, x + 3, 30, #FF0000;
+	__print x;
+}
+
+let r:bool = say_hello(1,1,31,31,#FFF000);
+
+__print #FFFFFF;
+
