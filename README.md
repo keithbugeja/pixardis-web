@@ -4,7 +4,7 @@
 
 ## What the hell is this?
 
-Pixardis was born when Dr. Sandro Spina bought a pixel display off AliExpress so cheap it barely sent a signal without crying.  No docs, no spec, and the software looked like malware written by interns. So he wrote a VM spec and handed it off as a compilers assignment.  
+Pixardis was born when a colleague bought a pixel display off AliExpress so cheap it barely sent a signal without crying.  No docs, no spec, and the software looked like malware written by interns. So he wrote a VM spec and handed it off as a compilers assignment.  
 
 I laughed, then rewrote everything in Rust because his JavaScript VM ran like a wounded 386 on a heat stroke.  Then I made it compile and run in the browser because I enjoy pain and hate free time.
 
