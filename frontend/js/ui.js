@@ -144,8 +144,7 @@ fun sign(value : int) -> int {
 
 // Simulate a game loop
 while (true) {
-    // Clear previous positions (Assuming __writebox can also clear areas if needed)
-    // Adjust this based on actual capability to clear or redraw the entire screen
+    // Clear previous positions 
     __clear #000000;
 
     // Ball movement logic
@@ -174,7 +173,7 @@ while (true) {
     __write_box ball_pos[0], ball_pos[1], 1, 1, #FF0000;
 
     // Delay to control the speed of the game
-    __delay 15; // Adjust this value as needed for smoother or faster gameplay
+    __delay 15;
 }`;
 }
 
