@@ -5,6 +5,8 @@ export function compile_pixardis_source(source: string): string;
 export function create_vm(width: number, height: number): WebVM;
 export function step_vm(vm: WebVM, steps: number): any;
 export function get_vm_framebuffer(vm: WebVM): Uint8Array;
+export function get_vm_print_output(vm: WebVM): any;
+export function clear_vm_print_output(vm: WebVM): void;
 export function load_vm_program(vm: WebVM, assembly: string): void;
 export class WebVM {
   free(): void;
@@ -12,6 +14,8 @@ export class WebVM {
   load_program(assembly: string): void;
   step(steps: number): any;
   get_framebuffer(): Uint8Array;
+  get_print_output(): any;
+  clear_print_output(): void;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -26,8 +30,12 @@ export interface InitOutput {
   readonly create_vm: (a: number, b: number) => number;
   readonly step_vm: (a: number, b: number) => any;
   readonly get_vm_framebuffer: (a: number) => [number, number];
+  readonly get_vm_print_output: (a: number) => any;
+  readonly clear_vm_print_output: (a: number) => void;
   readonly load_vm_program: (a: number, b: number, c: number) => void;
+  readonly webvm_get_print_output: (a: number) => any;
   readonly webvm_load_program: (a: number, b: number, c: number) => void;
+  readonly webvm_clear_print_output: (a: number) => void;
   readonly webvm_new: (a: number, b: number) => number;
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __externref_table_alloc: () => number;

@@ -377,3 +377,38 @@ body {
 .about-footer em {
     color: #ffa500;
 }
+
+.console-output {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.console-header {
+    background: #2a2a2a;
+    padding: 8px 12px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #ccc;
+}
+
+.console-content {
+    padding: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #0f0;
+    max-height: 150px;
+    overflow-y: auto;
+    min-height: 40px; /* Add this so it has some height even when empty */
+}
+
+.console-line {
+    margin: 2px 0;
+    white-space: pre-wrap;
+}

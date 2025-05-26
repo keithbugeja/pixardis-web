@@ -1,3 +1,5 @@
+import { clear_vm_print_output } from '../pkg/web.js';
+
 import { getEditor, setEditorValue, getEditorValue, setupAutoSave } from './editor.js';
 import { hideCompilerErrors } from './errors.js'; 
 import { 
@@ -43,8 +45,25 @@ export function setupEventHandlers() {
         setEditorValue(getPongCode());
     });
 
+    document.getElementById('load-fibonacci').addEventListener('click', () => {
+        setEditorValue(getFibonacciCode());
+    });
+
     document.getElementById('clear-editor').addEventListener('click', () => {
         setEditorValue(getNewFileCode());
+    });
+
+    // Add clear console functionality
+    document.getElementById('clear-console')?.addEventListener('click', () => {
+        const consoleContent = document.getElementById('console-content');
+        const consoleDiv = document.getElementById('console-output');
+        consoleContent.innerHTML = '';
+        consoleDiv.style.display = 'none';
+        
+        // Also clear the VM's print buffer if available
+        if (window.vm && typeof clear_vm_print_output !== 'undefined') {
+            clear_vm_print_output(window.vm);
+        }
     });
 
     // VM controls
@@ -175,7 +194,7 @@ fun fibonacci(n:int) -> int {
 
 let result:int = fibonacci(5);
 __print result;
-}`;
+`;
 }
 
 function getBounceCode() {

@@ -228,6 +228,15 @@ impl WebVM {
         
         rgb_data
     }
+
+    pub fn get_print_output(&self) -> JsValue {
+        let output = self.vm.get_print_output();
+        serde_wasm_bindgen::to_value(output).unwrap()
+    }
+
+    pub fn clear_print_output(&mut self) {
+        self.vm.clear_print_output();
+    }
 }
 
 // Convenience functions for JS
@@ -244,6 +253,16 @@ pub fn step_vm(vm: &mut WebVM, steps: usize) -> JsValue {
 #[wasm_bindgen]
 pub fn get_vm_framebuffer(vm: &WebVM) -> Vec<u8> {
     vm.get_framebuffer()
+}
+
+#[wasm_bindgen]
+pub fn get_vm_print_output(vm: &WebVM) -> JsValue {
+    vm.get_print_output()
+}
+
+#[wasm_bindgen]
+pub fn clear_vm_print_output(vm: &mut WebVM) {
+    vm.clear_print_output();
 }
 
 #[wasm_bindgen]

@@ -251,6 +251,24 @@ export function get_vm_framebuffer(vm) {
 
 /**
  * @param {WebVM} vm
+ * @returns {any}
+ */
+export function get_vm_print_output(vm) {
+    _assertClass(vm, WebVM);
+    const ret = wasm.get_vm_print_output(vm.__wbg_ptr);
+    return ret;
+}
+
+/**
+ * @param {WebVM} vm
+ */
+export function clear_vm_print_output(vm) {
+    _assertClass(vm, WebVM);
+    wasm.clear_vm_print_output(vm.__wbg_ptr);
+}
+
+/**
+ * @param {WebVM} vm
  * @param {string} assembly
  */
 export function load_vm_program(vm, assembly) {
@@ -319,6 +337,16 @@ export class WebVM {
         var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
         return v1;
+    }
+    /**
+     * @returns {any}
+     */
+    get_print_output() {
+        const ret = wasm.webvm_get_print_output(this.__wbg_ptr);
+        return ret;
+    }
+    clear_print_output() {
+        wasm.clear_vm_print_output(this.__wbg_ptr);
     }
 }
 

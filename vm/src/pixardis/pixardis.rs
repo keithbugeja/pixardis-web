@@ -152,6 +152,8 @@ pub struct PixardisVirtualMachine
     display: PixardisDisplay,
     log_level: PixardisLogLevel,
     start_time: Instant,
+    #[cfg(target_arch = "wasm32")]
+    print_buffer: Vec<String>,
 }
 
 impl PixardisVirtualMachine {
@@ -161,8 +163,26 @@ impl PixardisVirtualMachine {
             display: PixardisDisplay::new(width, height),
             log_level: PixardisLogLevel::None,
             start_time: Instant::now(),
+            #[cfg(target_arch = "wasm32")]
+            print_buffer: Vec::new(),
         }
     }
+
+    #[cfg(target_arch = "wasm32")]
+    // Add methods to manage the print buffer
+    pub fn get_print_output(&self) -> &Vec<String> {
+        &self.print_buffer
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn clear_print_output(&mut self) {
+        self.print_buffer.clear();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn add_print_output(&mut self, text: String) {
+        self.print_buffer.push(text);
+    }        
 
     // Add the get_time function
     fn get_time(&self) -> f64 {
@@ -1213,7 +1233,16 @@ impl PixardisVirtualMachine {
                     },
                 };
 
-                println!("{}", value);
+                // For web targets, store in buffer; for native, print to console
+                #[cfg(target_arch = "wasm32")]
+                {
+                    self.add_print_output(value);
+                }
+                
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    println!("{}", value);
+                }
             },
 
             /*
@@ -1260,7 +1289,18 @@ impl PixardisVirtualMachine {
                 }
                 
                 // Print in stack order
-                println!("[{}]", values.join(", "));                
+                let output = format!("[{}]", values.join(", "));
+
+                // For web targets, store in buffer; for native, print to console
+                #[cfg(target_arch = "wasm32")]
+                {
+                    self.add_print_output(output);
+                }
+                
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    println!("{}", output);
+                }              
             },
 
             // Just in case we get an instruction we don't recognise

@@ -9,6 +9,8 @@ import {
     create_vm, 
     step_vm, 
     get_vm_framebuffer, 
+    get_vm_print_output,
+    clear_vm_print_output,
     load_vm_program 
 } from '../pkg/web.js';
 
@@ -137,7 +139,7 @@ function startVMLoop() {
 
     updateVMControls();
 
-  function render() {
+    function render() {
         if (!isRunning) return;
         
         try {
@@ -147,6 +149,8 @@ function startVMLoop() {
             const vmResult = step_vm(vm, cyclesPerFrame);
             performanceStats.totalCycles += cyclesPerFrame;
             
+            updateConsoleOutput();
+
             const success = vmResult.get('success');
             const error = vmResult.get('error');
             
@@ -188,8 +192,8 @@ function startVMLoop() {
             const tempCtx = tempCanvas.getContext('2d');
             tempCtx.putImageData(imageData, 0, 0);
             
-            ctx.drawImage(tempCanvas, 0, 0, vmWidth * 10, vmHeight * 10);
-            
+            ctx.drawImage(tempCanvas, 0, 0, vmWidth * 10, vmHeight * 10);        
+
             // Update performance stats
             performanceStats.frameCount++;
             if (currentTime - performanceStats.lastTime >= 1000) {
@@ -279,6 +283,8 @@ export function stepVM() {
             const success = vmResult.get('success');
             const error = vmResult.get('error');
             
+            updateConsoleOutput();
+
             if (!success) {
                 console.error("VM Step Error:", error);
                 return;
@@ -308,7 +314,6 @@ export function stepVM() {
             tempCtx.putImageData(imageData, 0, 0);
             
             ctx.drawImage(tempCanvas, 0, 0, vmWidth * 10, vmHeight * 10);
-            
         } catch (error) {
             console.error("VM step error:", error);
         }
@@ -338,4 +343,35 @@ export function updatePerformanceDisplay() {
     
     if (fpsDisplay) fpsDisplay.textContent = `FPS: ${performanceStats.fps}`;
     if (ipsDisplay) ipsDisplay.textContent = `IPS: ${performanceStats.ips.toLocaleString()}`;
+}
+
+function updateConsoleOutput() {
+    if (!vm) return;
+    
+    try {
+        const output = get_vm_print_output(vm);
+        const consoleDiv = document.getElementById('console-output');
+        const consoleContent = document.getElementById('console-content');
+        
+        if (output && output.length > 0) {
+            // Show console if there's output
+            consoleDiv.style.display = 'block';
+            
+            // Add new output lines
+            output.forEach(line => {
+                const lineDiv = document.createElement('div');
+                lineDiv.textContent = line;
+                lineDiv.className = 'console-line';
+                consoleContent.appendChild(lineDiv);
+            });
+            
+            // Clear the VM's print buffer after displaying
+            clear_vm_print_output(vm);
+            
+            // Auto-scroll to bottom
+            consoleContent.scrollTop = consoleContent.scrollHeight;
+        }
+    } catch (error) {
+        console.error('Error updating console output:', error);
+    }
 }

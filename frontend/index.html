@@ -62,6 +62,7 @@
         <div class="editor-panel">
             <div class="editor-toolbar">
                 <button class="btn" id="compile-btn">🚀 Compile & Run</button>
+                <button class="btn secondary" id="load-fibonacci">Fibonacci</button>                
                 <button class="btn secondary" id="load-pong">Pong</button>
                 <button class="btn secondary" id="clear-editor">New File</button>
                 <button id="about-btn" class="about-button" title="About Pixardis IDE">ℹ️ About</button>
@@ -109,6 +110,16 @@
                     <div>Press F8 or click Compile & Run to execute</div>
                 </div>
             </div>
+            <div class="console-output" id="console-output" style="display: none;">
+                <div class="console-header">
+                    <span>📟 Console Output</span>
+                    <button class="btn secondary" id="clear-console">Clear</button>
+                    <button class="btn secondary" id="test-console">Test Console</button>
+                </div>
+                <div class="console-content" id="console-content">     
+                </div>
+            </div>
+
         </div>
     </div>
     
