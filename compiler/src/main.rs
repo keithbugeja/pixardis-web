@@ -3,12 +3,14 @@
 //! Compiles C-like code for the Pixardis virtual machine.
 //!
 //! TODO: [FIXES]
-//! - Need to sort out operator precedence
 //! - Need to handle the unary operator properly (for non-integer values)
+//! - Need to handle empty blocks (i.e. {})
+//! - Separate logical and relational operators
 //! 
 //! TODO: [FEATURES]
-//! - Add arrays to the language
 //! - Add structs to the language
+//! - Add proper variable scope determination (i.e. global, local, function)
+//! - Add support for global variables
 
 pub mod common;
 pub mod lexer;
@@ -32,8 +34,8 @@ use parser::{
 };
 
 use analysis::{
-    symbol::ScopeManager, 
-    semantic::SemanticAnalyser
+    semantic::SemanticAnalyser, 
+    symbol::ScopeManager
 };
 
 use codegen::generator::CodeGenerator;
@@ -88,14 +90,15 @@ fn main() -> Result<(), io::Error> {
     //
     let mut analysis_logger = logger.clone();
     let mut analysis_syntax_tree = parser.get_syntax_tree().unwrap();
-    let status = semantic_analysis(&mut analysis_syntax_tree, &mut scope_manager, &mut analysis_logger).unwrap();
+    let (semantic_analyser, status) = semantic_analysis(&mut analysis_syntax_tree, &mut scope_manager, &mut analysis_logger).unwrap();
     assert_stage(&logger, status, "Semantic Analysis");
+
 
     //
     // Perform code generation
     //
     let mut codegen_logger = logger.clone();
-    let mut codegen_syntax_tree = parser.get_syntax_tree().unwrap();
+    let mut codegen_syntax_tree = semantic_analyser.get_analysed_tree().unwrap(); //parser.get_syntax_tree().unwrap();
     let (program, status) = code_generation(&mut codegen_syntax_tree, &mut scope_manager, &mut codegen_logger).unwrap();
     assert_stage(&logger, status, "Code Generation");
 
@@ -152,11 +155,13 @@ pub fn parse<'a>(lexer: Lexer<'a>, logger: &'a mut Logger<'a>) -> Result<(Parser
 ///
 /// Semantic Analysis
 /// 
-pub fn semantic_analysis<'a>(syntax_tree: &'a mut ProgramNode, scope_manager: &'a mut ScopeManager, logger: &'a mut Logger<'a>) -> Result<CompilationResult,()> {
+pub fn semantic_analysis<'a>(syntax_tree: &'a mut ProgramNode, scope_manager: &'a mut ScopeManager, logger: &'a mut Logger<'a>) -> Result<(SemanticAnalyser<'a>, CompilationResult),()> {
     let mut semantic_analyser = SemanticAnalyser::new(syntax_tree, scope_manager, logger);
     semantic_analyser.analyse();
-    
-    Ok(semantic_analyser.status())
+
+    let status = semantic_analyser.status().clone();
+
+    Ok((semantic_analyser, status))
 }
 
 ///

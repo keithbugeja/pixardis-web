@@ -1,0 +1,76 @@
+let grid:int[4096] = [];
+
+fun draw_grid(g:int[4096]) -> bool {
+    let col:colour = #000000;
+    
+    for (let y:int = 0; y < 64; y = y + 1)
+    {
+        for (let x:int = 0; x < 64; x = x + 1)
+        {   
+            col = (g[x + (y * 64)] * 64) as colour;
+            __write x, y, col;
+        }
+    }
+
+    return true;
+}
+
+fun update_grid(g:int[4096]) -> int[4096] {
+    let ng:int[4096] = [];
+    let nc:int = 0;
+    let gc:int = 0;
+
+    for (let y:int = 0; y < 64; y = y + 1)
+    {
+        for (let x:int = 0; x < 64; x = x + 1)
+        {   
+            gc = x + y * 64;
+            nc = 0;
+
+            for (let i:int = -1; i < 2; i = i + 1) {
+                for (let j:int = -1; j < 2; j = j + 1) {
+                    if ((i != 0) && (j != 0)) {
+                        let p:int = gc + i + j * 64;
+                        if ((p >= 0) && (p < 4096)) {
+                            if (g[p] > 0) {
+                                nc = nc + 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (g[gc] != 0) {
+                if ((nc == 2) || (nc == 3)) {
+                    ng[gc] = nc;
+                } else {
+                    ng[gc] = 0;
+                }
+            } else {
+                if (nc >= 3) {
+                    ng[gc] = nc;                
+                } else {
+                    ng[gc] = 0;
+                }
+            }
+        }
+    }
+
+    return ng;
+}
+
+let result:bool = false;
+
+for (let i:int = 0; i < 4096; i = i + 1) {
+    if ((__randi 100) > 55) {
+        grid[i] = 1;
+    } else {
+        grid[i] = 0;
+    }
+}
+
+while (true) {
+    grid = update_grid(grid);
+    result = draw_grid(grid);
+    __delay 10;
+}

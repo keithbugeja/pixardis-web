@@ -1,7 +1,6 @@
 use shared::pixardis::PixardisInstruction;
 use std::collections::HashMap;
 
-
 #[derive(Debug, Clone)]
 pub enum VirtualMachineError {
     StackUnderflow,
@@ -13,7 +12,9 @@ pub enum VirtualMachineError {
     InvalidFrame,
     InvalidFrameSize,
     InvalidOperand,
+    InvalidCount,
     InvalidArgumentCount,
+    InvalidDelay,
     DivisionByZero,
     InstructionError,
     TrapHalt,
@@ -23,6 +24,7 @@ pub struct AddressStack {
     stack: Vec<usize>,
 }
 
+#[allow(dead_code)]
 impl AddressStack {
     pub fn new() -> AddressStack {
         AddressStack {
@@ -66,10 +68,12 @@ pub enum Operand {
     Real(f64),
 }
 
+#[derive(Debug, Clone)]
 pub struct OperandStack {
     stack: Vec<Operand>,
 }
 
+#[allow(dead_code)]
 impl OperandStack {
     pub fn new() -> OperandStack {
         OperandStack {
@@ -114,10 +118,12 @@ impl OperandStack {
     }
 }
 
+#[derive(Debug)]
 pub struct StackFrame {
     stack: Vec<Operand>,
 }
 
+#[allow(dead_code)]
 impl StackFrame {
     pub fn new(size: usize) -> StackFrame {
         StackFrame {
@@ -173,7 +179,7 @@ impl Memory {
 
     fn stack_frame_to_index(&self, frame: usize) -> Result<usize, VirtualMachineError> {
         let frame_index = self.stack.len() - frame - 1;
-        
+
         if frame_index >= self.stack.len() {
             return Err(VirtualMachineError::InvalidStackFrame);
         }
@@ -201,9 +207,6 @@ impl Memory {
 
     pub fn read(&self, frame: usize, offset: usize) -> Result<Operand,VirtualMachineError> { 
         let frame_index = self.stack_frame_to_index(frame)?;
-
-        // println!("read: frame_index: {}, offset: {}", frame_index, offset);
-
         if let Some(stack_frame) = self.stack.get(frame_index) {
             return Ok(stack_frame.read(offset)?);
         }
@@ -213,9 +216,6 @@ impl Memory {
 
     pub fn write(&mut self, frame: usize, offset: usize, operand: Operand) -> Result<(),VirtualMachineError> {
         let frame_index = self.stack_frame_to_index(frame)?;
-        
-        // println!("write: frame_index: {}, offset: {} <== {:?}", frame_index, offset, operand);
-
         if let Some(stack_frame) = self.stack.get_mut(frame_index) {
             return Ok(stack_frame.write(offset, operand)?);
         }
@@ -231,6 +231,7 @@ pub enum VirtualMachineState {
     Running,
     Paused,
     Stopped,
+    Delayed(f64, f64),
 }
 
 pub struct VirtualMachine {
@@ -242,11 +243,10 @@ pub struct VirtualMachine {
     program_counter: usize,
     address_map: HashMap<String, usize>,
 
-    // random_number_generator: ThreadRng,
-
     state: VirtualMachineState,
 }
 
+#[allow(dead_code)]
 impl VirtualMachine
 {
     pub fn new() -> VirtualMachine {
@@ -259,11 +259,13 @@ impl VirtualMachine
             program_counter: 0,
             address_map: HashMap::new(),
 
-            // random_number_generator: rand::thread_rng(),
-
             state: VirtualMachineState::Stopped,
         }
     }
+
+    // pub fn print_operand_stack(&self) {
+    //     println!("operand_stack: {:?}", self.operand_stack);
+    // }
 
     pub fn state(&self) -> VirtualMachineState {
         self.state.clone()

@@ -1,8 +1,11 @@
+use std::cell::RefCell;
+
 use crate::{parser::ast::ProgramNode, common::{logger::{Logger, LoggerError}, status::CompilationResult}};
 use super::symbol::{ScopeManager, SymbolEntry, SymbolType};
 
-pub struct SemanticAnalyser<'a> {
+pub struct SemanticAnalyser<'a> {    
     syntax_tree: &'a mut ProgramNode,
+    analysed_tree: Option<RefCell<ProgramNode>>,
     pub scope_manager: &'a mut ScopeManager,
     pub logger: &'a mut Logger<'a>,
     pub type_stack: Vec<SymbolType>,
@@ -13,10 +16,19 @@ impl<'a> SemanticAnalyser<'a> {
     pub fn new(syntax_tree: &'a mut ProgramNode, scope_manager: &'a mut ScopeManager, logger: &'a mut Logger<'a>) -> Self { 
         SemanticAnalyser { 
             syntax_tree,
+            analysed_tree: None,
             scope_manager,
             logger,
             type_stack: Vec::<SymbolType>::new(),
             status: CompilationResult::Pending, } 
+    }
+
+    pub fn get_analysed_tree(&self) -> Option<ProgramNode> {
+        if let Some(analysed_tree) = &self.analysed_tree {
+            Some(analysed_tree.borrow().clone())
+        } else {
+            None
+        }
     }
 
     pub fn status_set(&mut self, status: CompilationResult) {
@@ -34,7 +46,10 @@ impl<'a> SemanticAnalyser<'a> {
         // Start semantic analysis. This step assumes the syntax tree has already
         // has already been generated.
         let root_node = self.syntax_tree.clone();
-        root_node.accept(self);        
+        root_node.accept(self);
+
+        // Save modified tree
+        self.analysed_tree = Some(RefCell::new(root_node));
     }
 
     pub fn push_type(&mut self, symbol_type: SymbolType) {
@@ -52,27 +67,38 @@ impl<'a> SemanticAnalyser<'a> {
     }
 
     pub fn get_variable_type(&mut self, name: &str) -> Option<SymbolType> {
-        if let Some(result) = self.scope_manager.find_symbol(name) {
-            return Some(result.2.symbol_type.clone());
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            Some(symbol.symbol_type.clone())
+        } else {
+            None
         }
+    }
 
-        return None;
+    pub fn get_array_type(&mut self, name: &str) -> Option<SymbolType> {
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            match symbol.symbol_type.clone() {
+                SymbolType::Array(t, _) => Some((*t).clone()),
+                _ => None,
+            }
+        }  else {
+            None
+        } 
     }
 
     pub fn get_function_return_type(&mut self, name: &str) -> Option<SymbolType> {
-        if let Some(result) = self.scope_manager.find_symbol(name) {
-            return result.2.return_type.clone();
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            symbol.return_type.clone()
+        } else {
+            None
         }
-
-        return None;
     }
 
     pub fn get_function_argument_types(&mut self, name: &str) -> Option<Vec<SymbolEntry>> {
-        if let Some(result) = self.scope_manager.find_symbol(name) {
-            return result.2.params.clone();
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            symbol.params.clone()
+        } else {
+            None
         }
-
-        return None;
     }
 
     pub fn get_scope_return_type(&mut self) -> Option<SymbolType> {
@@ -84,12 +110,11 @@ impl<'a> SemanticAnalyser<'a> {
             if scope.is_function() {
                 return scope.return_type();
             }
-            else { 
-                scope_id = self.scope_manager.get(scope_id.unwrap()).unwrap().parent_scope_id();
-            }
+            
+            scope_id = self.scope_manager.get(scope_id.unwrap()).unwrap().parent_scope_id();            
         }
 
-        return None;
+        None
     }
 
     pub fn is_function_declaration_scope(&mut self) -> bool {
@@ -127,14 +152,39 @@ impl<'a> SemanticAnalyser<'a> {
         }
     }
 
-    // Should add a precondition that variable exists, otherwise
-    // an undeclared variable error will result in a type error
-    pub fn check_variable_type(&mut self, name: &str, symbol_type: SymbolType) -> bool {
-        if let Some(result) = self.scope_manager.find_symbol(name) {
-            return result.2.symbol_type.clone() == symbol_type;
+    pub fn assert_array_type(&mut self, name: &str, line_number: usize) {
+        let rhs_type = self.type_stack.pop().unwrap();
+        if !self.check_array_type(&name, rhs_type.clone()) {
+            self.logger.print_error(
+                LoggerError::Type, 
+                format!("Mismatching types, trying to assign '{}' value to array '{}'.", rhs_type.to_string(), &name).as_str(),
+                line_number,
+            );
+
+            self.status_set(CompilationResult::Failure);
         }
-        
-        return false;
+    }
+
+    // Should add a precondition that symbol exists, otherwise
+    // an undeclared variable/array error will result in a type error
+
+    pub fn check_array_type(&mut self, name: &str, symbol_type: SymbolType) -> bool {
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            match symbol.symbol_type.clone() {
+                SymbolType::Array(t, _) => *t == symbol_type,
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+
+    pub fn check_variable_type(&mut self, name: &str, symbol_type: SymbolType) -> bool {
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            symbol.symbol_type == symbol_type
+        } else {
+            false
+        }
     }
 
     pub fn check_variable_exists_in_current_scope(&mut self, name: &str) -> bool {     
@@ -151,10 +201,10 @@ impl<'a> SemanticAnalyser<'a> {
 
     pub fn check_variable_exists(&mut self, name: &str) -> bool {
         if let Some(_) = self.scope_manager.find_symbol(name) {
-            return true;
+            true
+        } else {
+            false
         }
-        
-        return false;
     }
 
     pub fn enter_scope(&mut self) {

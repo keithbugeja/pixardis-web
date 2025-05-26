@@ -39,8 +39,8 @@ export function setupEventHandlers() {
     });
 
     // Sample programs
-    document.getElementById('load-bounce').addEventListener('click', () => {
-        setEditorValue(getBounceCode());
+    document.getElementById('load-pong').addEventListener('click', () => {
+        setEditorValue(getPongCode());
     });
 
     document.getElementById('clear-editor').addEventListener('click', () => {
@@ -71,9 +71,6 @@ export function setupEventHandlers() {
         resizeVM(width, height);
     });
     
-    // Setup auto-save
-    setupAutoSave();
-
     // About modal
     document.getElementById('about-btn')?.addEventListener('click', () => {
         document.getElementById('about-modal').style.display = 'block';
@@ -98,7 +95,87 @@ export function setupEventHandlers() {
         }
     });
 
+    // Setup auto-save
+    setupAutoSave();
+
     console.log("✅ Event handlers setup!");
+}
+
+function getPongCode() {
+    return `// Pong for Pixardis
+// A simple auto-play Pong game
+
+let paddle_size : int[2] = [1, 8];
+let paddle_lt : int[2] = [0, (__height - paddle_size[1]) / 2];
+let paddle_rt : int[2] = [__width - paddle_size[0], (__height - paddle_size[1]) / 2];
+let ball_pos : int[2] = [__width / 2, __height / 2];
+let ball_vel : int[2] = [1, -1];
+
+fun sign(value : int) -> int {
+    if (value < 0) { 
+        return -1;
+    } else {
+        if (value > 0) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+}
+
+// Simulate a game loop
+while (true) {
+    // Clear previous positions (Assuming __writebox can also clear areas if needed)
+    // Adjust this based on actual capability to clear or redraw the entire screen
+    __clear #000000;
+
+    // Ball movement logic
+    ball_pos[0] = ball_pos[0] + ball_vel[0];
+    ball_pos[1] = ball_pos[1] + ball_vel[1];
+
+    // Ball collision with screen edges
+    if ((ball_pos[0] <= 1) or (ball_pos[0] >= __width - 1)) {
+        ball_vel[0] = -ball_vel[0];
+    }
+
+    if ((ball_pos[1] <= 0) or (ball_pos[1] >= __height)) {
+        ball_vel[1] = -ball_vel[1];
+    }
+
+    // AI Paddle movement towards the ball's y-position
+    if (ball_pos[0] < __width / 2) {
+        paddle_lt[1] = paddle_lt[1] + sign(ball_pos[1] - paddle_lt[1]);
+    } else {
+        paddle_rt[1] = paddle_rt[1] + sign(ball_pos[1] - paddle_rt[1]);
+    }
+
+    // Redraw the paddles and ball
+    __write_box paddle_lt[0], paddle_lt[1], paddle_size[0], paddle_size[1], #FFFFFF; 
+    __write_box paddle_rt[0], paddle_rt[1], paddle_size[0], paddle_size[1], #FFFFFF; 
+    __write_box ball_pos[0], ball_pos[1], 1, 1, #FF0000;
+
+    // Delay to control the speed of the game
+    __delay 15; // Adjust this value as needed for smoother or faster gameplay
+}`;
+}
+
+function getFibonacciCode() {
+    return `// Fibonacci example
+fun fibonacci(n:int) -> int {
+    if (n == 0) {
+        return 0;
+    } else { 
+        if (n == 1) {
+            return 1;
+        }
+    }
+
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+let result:int = fibonacci(5);
+__print result;
+}`;
 }
 
 function getBounceCode() {

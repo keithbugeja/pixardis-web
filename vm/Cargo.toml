@@ -12,3 +12,4 @@ shared = { path = "../shared" }
 clap.workspace = true
 macroquad.workspace = true
 fastrand.workspace = true
+instant.workspace = true

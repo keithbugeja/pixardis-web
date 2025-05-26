@@ -8,6 +8,7 @@ use crate::common::status::CompilationResult;
 use crate::parser::ast::ProgramNode;
 use crate::analysis::symbol::*;
 
+#[allow(dead_code)]
 pub struct CodeGenerator<'a> {
     syntax_tree: &'a mut ProgramNode,
     pub scope_manager: &'a mut ScopeManager,
@@ -151,4 +152,27 @@ impl<'a> CodeGenerator<'a> {
         false
     }
 
+    pub fn get_current_scope_return_type(&mut self) -> Option<SymbolType> {
+        if let Some(current_scope) = self.scope_manager.current() {
+            return current_scope.return_type();
+        }
+
+        None
+    }
+
+    pub fn get_function_return_type(&mut self, name: &str) -> Option<SymbolType> {
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            symbol.return_type.clone()
+        } else {
+            None
+        }
+    }
+
+    pub fn get_function_argument_types(&mut self, name: &str) -> Option<Vec<SymbolEntry>> {
+        if let Some((_, _, symbol)) = self.scope_manager.find_symbol(name) {
+            symbol.params.clone()
+        } else {
+            None
+        }
+    }   
 }

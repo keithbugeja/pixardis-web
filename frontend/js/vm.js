@@ -1,4 +1,17 @@
+// Try importing everything first to see what's available
 import * as WebModule from '../pkg/web.js';
+
+console.log("Available exports:", Object.keys(WebModule));
+
+import { 
+    compile_pixardis_source, 
+    compile_pixardis_source_with_errors,
+    create_vm, 
+    step_vm, 
+    get_vm_framebuffer, 
+    load_vm_program 
+} from '../pkg/web.js';
+
 import { showCompilerErrors, hideCompilerErrors } from './errors.js'; 
 
 let vm = null;

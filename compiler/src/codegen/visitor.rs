@@ -1,4 +1,7 @@
-use crate::parser::ast::*;
+use crate::{
+    analysis::symbol::SymbolType, 
+    parser::ast::*
+};
 use super::generator::CodeGenerator;
 use shared::pixardis::PixardisInstruction;
 
@@ -83,6 +86,37 @@ impl AbstractSyntaxTreeVisitor for CodeGenerator<'_> {
         self.emit_code(PixardisInstruction::Store);
     }
 
+    fn visit_array_declaration(&mut self, node: &ArrayDeclarationNode) {
+        let symbol_table = self.symbol_table().unwrap();
+        let symbol = symbol_table.get(&node.identifier).unwrap();
+        let symbol_index = symbol.offset.unwrap();        
+        let symbol_size = symbol.symbol_type.size();
+
+        // accept all the expressions in the node initialiser list
+        if let Some(initialiser) = &node.initialiser {
+            for expression in initialiser.iter().rev() {
+                expression.accept(self);
+            }
+        } else {
+            self.emit_code(PixardisInstruction::PushImmediate("0".to_string()));
+            
+            if node.size - 1 > 0 {
+                self.emit_code(PixardisInstruction::PushImmediate((node.size - 1).to_string()));
+                self.emit_code(PixardisInstruction::DuplicateArray);
+            }
+
+            // for _ in 0..node.size {
+            //     // Push zero as initialiser
+            //     self.emit_code(PixardisInstruction::PushImmediate("0".to_string()));
+            // }
+        }
+
+        self.emit_code(PixardisInstruction::PushImmediate(symbol_size.to_string()));
+        self.emit_code(PixardisInstruction::PushImmediate(symbol_index.to_string()));
+        self.emit_code(PixardisInstruction::PushImmediate("0".to_string()));
+        self.emit_code(PixardisInstruction::StoreArray);
+    }
+
     fn visit_function_declaration(&mut self, node: &FunctionDeclarationNode) {                
         // Functions are encapsulated with jumps 
         // to prevent execution of function code 
@@ -123,14 +157,34 @@ impl AbstractSyntaxTreeVisitor for CodeGenerator<'_> {
         // Evaluate expression
         node.expression.accept(self);
         
-        let symbol = self.scope_manager.find_symbol(&node.identifier).unwrap();
-        
-        let frame = symbol.1.clone().to_string();
-        let offset = symbol.2.offset.unwrap().clone().to_string();
+        // Find symbol in symbol table
+        let (_, scope_distance, symbol) = self.scope_manager.find_symbol(&node.identifier.as_str()).unwrap();
 
-        self.emit_code(PixardisInstruction::PushImmediate(offset));
-        self.emit_code(PixardisInstruction::PushImmediate(frame));
-        self.emit_code(PixardisInstruction::Store);
+        // Get frame, offset and size
+        let frame = scope_distance.clone().to_string();
+        let offset = symbol.offset.clone().unwrap().to_string();
+        let symbol_type = symbol.symbol_type.clone();
+
+        // Is this an array?
+        if let SymbolType::Array(_, s) = symbol_type {
+            // Is array indexed?
+            if let Some(array_index) = node.array_index.as_ref() {
+                self.emit_code(PixardisInstruction::PushImmediate(offset.clone()));
+                array_index.accept(self);
+                self.emit_code(PixardisInstruction::Add);
+                self.emit_code(PixardisInstruction::PushImmediate(frame));
+                self.emit_code(PixardisInstruction::Store);
+            } else {
+                self.emit_code(PixardisInstruction::PushImmediate(s.to_string()));
+                self.emit_code(PixardisInstruction::PushImmediate(offset));
+                self.emit_code(PixardisInstruction::PushImmediate(frame));
+                self.emit_code(PixardisInstruction::StoreArray);
+            }
+        } else {
+            self.emit_code(PixardisInstruction::PushImmediate(offset.clone()));
+            self.emit_code(PixardisInstruction::PushImmediate(frame));
+            self.emit_code(PixardisInstruction::Store);
+    }
     }
 
     fn visit_expression(&mut self, node: &ExpressionNode) {
@@ -152,6 +206,7 @@ impl AbstractSyntaxTreeVisitor for CodeGenerator<'_> {
                 "-" => self.emit_code(PixardisInstruction::Subtract),
                 "*" | "&&" | "and" => self.emit_code(PixardisInstruction::Multiply),
                 "/" => self.emit_code(PixardisInstruction::Divide),
+                "%" => self.emit_code(PixardisInstruction::Modulo),
                 "==" => self.emit_code(PixardisInstruction::Equal),
                 "!=" => { 
                     self.emit_code(PixardisInstruction::Equal);
@@ -167,9 +222,17 @@ impl AbstractSyntaxTreeVisitor for CodeGenerator<'_> {
         } 
     }
     
-    fn visit_print(&mut self, node: &ExpressionNode) {
-        node.accept(self);
-        self.emit_code(PixardisInstruction::Print);
+    fn visit_print(&mut self, node: &PrintNode) {
+        node.arg_expr.accept(self);
+
+        let arg_type = SymbolType::from_string(node.arg_type.borrow().as_str());
+
+        if let Some(SymbolType::Array(_, s)) = arg_type {
+            self.emit_code(PixardisInstruction::PushImmediate(s.to_string()));
+            self.emit_code(PixardisInstruction::PrintArray);
+        } else {
+            self.emit_code(PixardisInstruction::Print);
+        }
     }
 
     fn visit_delay(&mut self, node: &ExpressionNode) {
@@ -198,6 +261,15 @@ impl AbstractSyntaxTreeVisitor for CodeGenerator<'_> {
         self.emit_code(PixardisInstruction::WriteBox);
     }
 
+    fn visit_write_line(&mut self, node: &[ExpressionNode; 5]) {
+        node[4].accept(self);
+        node[3].accept(self);
+        node[2].accept(self);
+        node[1].accept(self);
+        node[0].accept(self);
+        self.emit_code(PixardisInstruction::WriteLine);
+    }
+
     fn visit_return(&mut self, node: &ExpressionNode) {
         node.accept(self);
 
@@ -209,9 +281,19 @@ impl AbstractSyntaxTreeVisitor for CodeGenerator<'_> {
             self.previous_scope();
         }
 
+        // Get return type before popping the function scope
+        let return_type = self.get_current_scope_return_type();
+
+        // Pop function scope
         self.pop_scope();
 
-        self.emit_code(PixardisInstruction::Return);
+        // Return array or scalar
+        if let Some(SymbolType::Array(_, s)) = return_type {
+            self.emit_code(PixardisInstruction::PushImmediate(s.to_string()));
+            self.emit_code(PixardisInstruction::ReturnArray);
+        } else {
+            self.emit_code(PixardisInstruction::Return);
+        }
     }
 
     fn visit_if(&mut self, node: &IfNode) {
@@ -404,26 +486,48 @@ impl AbstractSyntaxTreeVisitor for CodeGenerator<'_> {
     }
 
     fn visit_identifier(&mut self, value: String) {
-        let symbol = self.scope_manager.find_symbol(value.as_str()).unwrap();
-        
-        let frame:i64 = symbol.1.clone().to_string().parse().unwrap();
-        let offset = symbol.2.offset.clone().unwrap() as i64;
+        let (_, scope_distance, symbol) = self.scope_manager.find_symbol(value.as_str()).unwrap();
 
-        self.emit_code(PixardisInstruction::PushIndexed([offset, frame]));
+        // Get frame, offset and size
+        let frame = scope_distance.clone() as i64;
+        let offset = symbol.offset.clone().unwrap() as i64;
+
+        if let SymbolType::Array(_, s) = symbol.symbol_type {
+            self.emit_code(PixardisInstruction::PushImmediate(s.to_string()));
+            self.emit_code(PixardisInstruction::PushArray([offset, frame]));
+        } else {
+            self.emit_code(PixardisInstruction::PushIndexed([offset, frame]));
+        }
     }
 
     fn visit_function_call(&mut self, node: &FunctionCallNode) {
-        let mut arg_count = 0;
+        let argument_header = self.get_function_argument_types(&node.identifier)
+            .unwrap()
+            .iter()
+            .fold(0, |acc, arg| {
+                acc + arg.symbol_type.size()
+            }
+        );
 
         let arguments: Vec<_> = node.arguments.iter().collect();
         arguments.into_iter().rev().for_each(|arg| {
             arg.accept(self);
-            arg_count += 1;
         });
 
-        self.emit_code(PixardisInstruction::PushImmediate(arg_count.to_string()));
+        self.emit_code(PixardisInstruction::PushImmediate(argument_header.to_string()));
         self.emit_code(PixardisInstruction::PushLabel(node.identifier.clone()));
         self.emit_code(PixardisInstruction::Call);
+    }
+
+    fn visit_array_access(&mut self, node: &ArrayAccessNode) {        
+        let (_, scope_distance, symbol) = self.scope_manager.find_symbol(&node.identifier.as_str()).unwrap();
+        
+        let frame = scope_distance.clone() as i64;
+        let offset = symbol.offset.clone().unwrap() as i64;
+
+        node.index.accept(self);
+
+        self.emit_code(PixardisInstruction::PushIndexedOffset([offset, frame]));
     }
 
     fn visit_subexpression(&mut self, node: &std::rc::Rc<ExpressionNode>) {

@@ -1,0 +1,11 @@
+fun MaxInArray(x:int[8]) -> int {
+  let m:int = 0;
+  for (let i:int = 0; i < 8; i = i+1) {
+   if (x[i] > m) { m = x[i]; }
+  }
+  return m;
+}
+
+let list_of_integers : int[] = [23, 54, 3, 65, 99, 120, 34, 21];
+let max : int = MaxInArray(list_of_integers);
+__print max;

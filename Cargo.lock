@@ -298,6 +298,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "instant"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0242819d153cba4b4b05a5a8f2a7e9bbf97b6055b2a002b395c96b5ff3c0222"
+dependencies = [
+ "cfg-if",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "is-terminal"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -618,6 +630,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "fastrand",
+ "instant",
  "macroquad",
  "shared",
 ]
@@ -692,6 +705,7 @@ version = "0.1.0"
 dependencies = [
  "fastrand",
  "getrandom",
+ "instant",
  "regex",
  "serde",
  "serde-wasm-bindgen",

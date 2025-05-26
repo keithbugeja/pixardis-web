@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use regex::Regex;
+
+// use crate::lexer::lexer::Symbol;
+
 #[derive(Debug)]
 pub struct ScopeManager {
     scope_array: Vec<SymbolTable>,
@@ -173,8 +177,26 @@ impl SymbolTable {
         self.symbols.iter()
     }
 
-    pub fn size(&self) -> usize {
+    // Count the number of symbols in the table
+    // - This function inherits the old semantics of size()
+    pub fn count(&self) -> usize {
         self.symbols.len()
+    }
+
+    // Sum the size of all symbols in the table
+    // - This function returns the current size of the symbol table in elements
+    // - A scalar counts as 1, while an array counts as its size
+    // - This function is used to calculate stack frame allocations and variable offsets
+    pub fn size(&self) -> usize {
+        // Iterate through symbols and sum their sizes
+        let size = self.symbols.iter().fold(0, |acc, (_, symbol)|             
+            match symbol.symbol_type {
+                SymbolType::Array(_, size) => acc + size as usize,
+                _ => acc + 1,
+            }
+        );
+
+        size
     }
 
     pub fn scope_id(&self) -> usize {
@@ -194,21 +216,44 @@ impl SymbolTable {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum SymbolType
-{
+#[derive(Clone, Debug, PartialEq)]
+pub enum SymbolType {
     Bool,
     Int,
     Float,
     Colour,
+    Array(Box<SymbolType>, i64),
     Function,
     Undefined,
 }
 
-impl SymbolType
-{
+impl SymbolType {
+    pub fn size(&self) -> usize {
+        match self {
+            SymbolType::Bool => 1,
+            SymbolType::Int => 1,
+            SymbolType::Float => 1,
+            SymbolType::Colour => 1,
+            SymbolType::Array(_, size) => *size as usize,
+            SymbolType::Function => 0,
+            SymbolType::Undefined => 0,
+        }
+    }
+    
+    pub fn make_type(symbol_type: &str, size: i64) -> Option<SymbolType> {
+        if size < 0 {
+            panic!("Array size must be a positive integer");
+        } else if size == 0 {
+            SymbolType::from_string(symbol_type)
+        } else {
+            Some(SymbolType::Array(Box::new(SymbolType::from_string(symbol_type)?), size))
+        }
+    }
+    
     pub fn from_string(s: &str) -> Option<SymbolType>
     {
+        let pattern = Regex::new(r"^array\s*\[\s*(?P<type>\w+)\s*;\s*(?P<size>\d+)\s*\]$").unwrap();
+
         match s
         {
             "bool" => Some(SymbolType::Bool),
@@ -216,7 +261,18 @@ impl SymbolType
             "float" => Some(SymbolType::Float),
             "colour" => Some(SymbolType::Colour),
             "function" => Some(SymbolType::Function),
-            _ => None
+            _ if pattern.is_match(s) => {
+                let captures = pattern.captures(s)?;
+
+                let type_string = captures.name("type")?.as_str();
+                let size_string = captures.name("size")?.as_str();
+
+                let array_type = SymbolType::from_string(type_string)?;
+                let array_size = size_string.parse::<i64>().ok()?;
+
+                Some(SymbolType::Array(Box::new(array_type), array_size))
+            },
+            _ => None,
         }
     }
 
@@ -228,6 +284,9 @@ impl SymbolType
             SymbolType::Int => String::from("int"),
             SymbolType::Float => String::from("float"),
             SymbolType::Colour => String::from("colour"),
+            SymbolType::Array(inner, size) => {
+                format!("array [{}; {}]", inner.to_string(), size)
+            },
             SymbolType::Function => String::from("function"),
             SymbolType::Undefined => String::from("undefined")
         }

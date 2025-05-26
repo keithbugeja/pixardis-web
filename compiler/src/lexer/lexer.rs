@@ -30,6 +30,7 @@ pub enum Symbol {
     Minus,
     Asterisk,
     Ampersand,
+    Percent,
     Pipe,
     Slash,
     Bang,
@@ -44,6 +45,8 @@ pub enum Symbol {
     RParen,
     LBrace,
     RBrace,
+    LBracket,
+    RBracket,
     Whitespace,
     CR,
     EOL,
@@ -65,6 +68,7 @@ pub fn classify_symbol(symbol: char) -> Symbol {
         '-' => Symbol::Minus,
         '*' => Symbol::Asterisk,
         '&' => Symbol::Ampersand,
+        '%' => Symbol::Percent,
         '|' => Symbol::Pipe,
         '/' => Symbol::Slash,
         '!' => Symbol::Bang,
@@ -79,6 +83,8 @@ pub fn classify_symbol(symbol: char) -> Symbol {
         ')' => Symbol::RParen,
         '{' => Symbol::LBrace,
         '}' => Symbol::RBrace,
+        '[' => Symbol::LBracket,
+        ']' => Symbol::RBracket,
         '\n' => Symbol::EOL,
         '\r' => Symbol::CR,
         _ => Symbol::Undefined    
@@ -295,6 +301,9 @@ impl<'a> Lexer<'a> {
                     _ => { operator = String::from("-"); }
                 }
             },
+            Symbol::Percent => {
+                operator = String::from("%");
+            },
             Symbol::Asterisk => {
                 operator = String::from("*");
             },
@@ -498,7 +507,7 @@ impl<'a> Lexer<'a> {
                 },
 
                 // delimiters and punctuation
-                Symbol::LParen | Symbol::RParen | Symbol::LBrace | Symbol::RBrace | Symbol::Comma | Symbol::Colon | Symbol::Semicolon => {
+                Symbol::LBracket | Symbol::RBracket | Symbol::LParen | Symbol::RParen | Symbol::LBrace | Symbol::RBrace | Symbol::Comma | Symbol::Colon | Symbol::Semicolon => {
                     let token_input: String = self.scan_character();
                     let token = classify_token(&token_input);
                     let line_number = self.token_position_to_line_number(symbol_position); 
@@ -513,7 +522,7 @@ impl<'a> Lexer<'a> {
                 },
 
                 // operators
-                Symbol::Equals | Symbol::Bang | Symbol::LAngle | Symbol::RAngle | Symbol::Asterisk | Symbol::Plus | Symbol::Minus | Symbol::Ampersand | Symbol::Pipe => {
+                Symbol::Equals | Symbol::Bang | Symbol::LAngle | Symbol::RAngle | Symbol::Percent | Symbol::Asterisk | Symbol::Plus | Symbol::Minus | Symbol::Ampersand | Symbol::Pipe => {
                     let token_input: String = self.scan_operator();
                     let token = classify_token(&token_input);
                     let line_number = self.token_position_to_line_number(symbol_position); 
@@ -571,5 +580,11 @@ impl<'a> Lexer<'a> {
         self.token_index += 1;
 
         return token;        
+    }
+
+    pub fn print_tokens(&self) {
+        for token in &self.tokens {
+            println!("{:?}", token);
+        }
     }
 }

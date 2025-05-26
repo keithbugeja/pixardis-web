@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub trait AbstractSyntaxTreeVisitor
 {
@@ -7,15 +7,17 @@ pub trait AbstractSyntaxTreeVisitor
     fn visit_unscoped_block(&mut self, node: &UnscopedBlockNode);
     fn visit_statement(&mut self, node: &StatementNode);
     fn visit_variable_declaration(&mut self, node: &VariableDeclarationNode);
+    fn visit_array_declaration(&mut self, node: &ArrayDeclarationNode);
     fn visit_function_declaration(&mut self, node: &FunctionDeclarationNode);
     fn visit_formal_parameter(&mut self, node: &FormalParameterNode);
     fn visit_assignment(&mut self, node: &AssignmentNode);
     fn visit_expression(&mut self, node: &ExpressionNode);
-    fn visit_print(&mut self, node: &ExpressionNode);
+    fn visit_print(&mut self, node: &PrintNode);
     fn visit_delay(&mut self, node: &ExpressionNode);
     fn visit_clear(&mut self, node: &ExpressionNode);
     fn visit_write(&mut self, node: &[ExpressionNode; 3]);
     fn visit_write_box(&mut self, node: &[ExpressionNode; 5]);
+    fn visit_write_line(&mut self, node: &[ExpressionNode; 5]);
     fn visit_return(&mut self, node: &ExpressionNode);
     fn visit_if(&mut self, node: &IfNode);
     fn visit_while(&mut self, node: &WhileNode);
@@ -31,6 +33,7 @@ pub trait AbstractSyntaxTreeVisitor
     fn visit_read(&mut self, data: &[Rc<ExpressionNode>; 2]);
     fn visit_identifier(&mut self, value: String);
     fn visit_function_call(&mut self, node: &FunctionCallNode);
+    fn visit_array_access(&mut self, node: &ArrayAccessNode);
     fn visit_subexpression(&mut self, node: &Rc<ExpressionNode>);
     fn visit_unary(&mut self, node: &Rc<ExpressionNode>);
 }
@@ -75,12 +78,14 @@ impl UnscopedBlockNode {
 #[derive(Debug, PartialEq, Clone)]
 pub enum StatementNode {
     VariableDeclaration(VariableDeclarationNode),
+    ArrayDeclaration(ArrayDeclarationNode),
     FunctionDeclaration(FunctionDeclarationNode),
     Assignment(AssignmentNode),
-    Print(ExpressionNode),
+    Print(PrintNode),
     Delay(ExpressionNode),
     Write([ExpressionNode; 3]),
     WriteBox([ExpressionNode; 5]),
+    WriteLine([ExpressionNode; 5]),
     Return(ExpressionNode),
     Block(BlockNode),
     UnscopedBlock(UnscopedBlockNode),
@@ -94,12 +99,14 @@ impl StatementNode {
     pub fn accept(&self, visitor: &mut dyn AbstractSyntaxTreeVisitor) {
         match self {
             StatementNode::VariableDeclaration(node) => visitor.visit_variable_declaration(node),
+            StatementNode::ArrayDeclaration(node) => visitor.visit_array_declaration(node),
             StatementNode::FunctionDeclaration(node) => visitor.visit_function_declaration(node),
             StatementNode::Assignment(node) => visitor.visit_assignment(node),
             StatementNode::Print(node) => visitor.visit_print(node),
             StatementNode::Delay(node) => visitor.visit_delay(node),
             StatementNode::Write(node) => visitor.visit_write(node),
             StatementNode::WriteBox(node) => visitor.visit_write_box(node),
+            StatementNode::WriteLine(node) => visitor.visit_write_line(node),
             StatementNode::Return(node) => visitor.visit_return(node),
             StatementNode::Block(node) => visitor.visit_block(node),
             StatementNode::UnscopedBlock(node) => visitor.visit_unscoped_block(node),
@@ -156,6 +163,36 @@ impl ForNode {
     }
 }
 
+// Array Declaration Node : this is an array declaration
+#[derive(Debug, PartialEq, Clone)]
+pub struct ArrayDeclarationNode {
+    pub identifier: String,
+    pub type_name: String,
+    pub size: i64,
+    pub initialiser: Option<Vec<ExpressionNode>>,
+    pub line: usize,
+}
+
+impl ArrayDeclarationNode {
+    pub fn accept(&self, visitor: &mut dyn AbstractSyntaxTreeVisitor) {
+        visitor.visit_array_declaration(self);
+    }
+}
+
+// Array Access Node : this is an array access through indexing
+#[derive(Debug, PartialEq, Clone)]
+pub struct ArrayAccessNode{
+    pub identifier: String,
+    pub index: Rc<ExpressionNode>,
+    pub line: usize,
+}
+
+impl ArrayAccessNode {
+    pub fn accept(&self, visitor: &mut dyn AbstractSyntaxTreeVisitor) {
+        visitor.visit_array_access(self);
+    }
+}
+
 // Variable Declaration Node : this is a variable declaration
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableDeclarationNode {
@@ -175,6 +212,7 @@ impl VariableDeclarationNode {
 #[derive(Debug, PartialEq, Clone)]
 pub struct AssignmentNode {
     pub identifier: String,
+    pub array_index: Option<ExpressionNode>,
     pub expression: ExpressionNode,
     pub line: usize,
 }
@@ -190,6 +228,7 @@ impl AssignmentNode {
 pub struct FormalParameterNode {
     pub identifier: String,
     pub type_name: String,
+    pub size: i64,
     pub line: usize,
 }
 
@@ -205,6 +244,7 @@ pub struct FunctionDeclarationNode {
     pub identifier: String,
     pub formal_parameters: Vec<FormalParameterNode>,
     pub return_type: String,
+    pub return_size: i64,
     pub body: Rc<StatementNode>,
     pub line: usize,
 }
@@ -226,6 +266,30 @@ pub struct FunctionCallNode{
 impl FunctionCallNode {
     pub fn accept(&self, visitor: &mut dyn AbstractSyntaxTreeVisitor) {
         visitor.visit_function_call(self);
+    }
+}
+
+// Print Node : this is the print function
+#[derive(Debug, PartialEq)]
+pub struct PrintNode{
+    pub arg_expr: ExpressionNode,
+    pub arg_type: RefCell<String>,
+    pub line: usize,
+}
+
+impl Clone for PrintNode {
+    fn clone(&self) -> PrintNode {       
+        PrintNode {
+            arg_expr: self.arg_expr.clone(),
+            arg_type: RefCell::new(self.arg_type.borrow().clone()),
+            line: self.line,
+        }
+    }
+}
+
+impl PrintNode {
+    pub fn accept(&self, visitor: &mut dyn AbstractSyntaxTreeVisitor) {
+        visitor.visit_print(self);
     }
 }
 
@@ -258,6 +322,7 @@ pub enum FactorNode {
     Read([Rc<ExpressionNode>; 2]),
     Identifier(String),
     FunctionCall(FunctionCallNode),
+    ArrayAccess(ArrayAccessNode),
     Subexpression(Rc<ExpressionNode>),
     Unary(Rc<ExpressionNode>),
 }
@@ -275,6 +340,7 @@ impl FactorNode {
             FactorNode::Read(data) => visitor.visit_read(data),
             FactorNode::Identifier(value) => visitor.visit_identifier(value.clone()),
             FactorNode::FunctionCall(node) => visitor.visit_function_call(node),
+            FactorNode::ArrayAccess(node) => visitor.visit_array_access(node),
             FactorNode::Subexpression(node) => visitor.visit_subexpression(node),
             FactorNode::Unary(node) => visitor.visit_unary(node),
         }

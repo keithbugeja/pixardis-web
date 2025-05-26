@@ -1,0 +1,21 @@
+fun Race(score_max:int) -> int {
+    let colours:colour[] = [#0000FF, #00FF00, #FF0000, #FFFF00, #FF00FF, #00FFFF, #FFFFFF];
+    let score:int[64] = [];
+
+    while (true) {
+        let index:int = __random_int 64;
+        score[index] = score[index] + 1;
+
+        __write index, score[index], colours[(index % 7)];
+
+        if (score[index] == score_max) {
+            return index;
+        }
+
+        __delay 10;
+    }
+
+    return -1;
+}
+
+__print Race(__height);

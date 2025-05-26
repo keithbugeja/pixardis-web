@@ -1,15 +1,15 @@
+use super::semantic::SemanticAnalyser;
+use super::symbol::SymbolEntry;
+use super::symbol::SymbolType;
 use crate::common::logger::LoggerError;
 use crate::common::status::CompilationResult;
 use crate::parser::ast::AbstractSyntaxTreeVisitor;
-use super::semantic::SemanticAnalyser;
-use super::symbol::SymbolType;
-use super::symbol::SymbolEntry;
 
 impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
     fn visit_program(&mut self, node: &crate::parser::ast::ProgramNode) {
         self.enter_scope();
 
-        for statement in &node.statements {            
+        for statement in &node.statements {
             statement.accept(self);
         }
 
@@ -40,31 +40,98 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         // Check if variable already exists in current scope
         if self.check_variable_exists_in_current_scope(&node.identifier) {
             self.logger.print_error(
-                LoggerError::Semantic, 
-                format!("Variable '{}' already exists in current scope.", node.identifier).as_str(),
+                LoggerError::Semantic,
+                format!(
+                    "Variable '{}' already exists in current scope.",
+                    node.identifier
+                )
+                .as_str(),
                 node.line,
             );
 
             self.status_set(CompilationResult::Failure);
         } else {
             self.add_variable_to_current_scope(
-                node.identifier.clone(), 
+                node.identifier.clone(),
                 SymbolEntry {
-                    name: node.identifier.clone(), 
+                    name: node.identifier.clone(),
                     symbol_type: SymbolType::from_string(node.type_name.as_str()).unwrap(),
-                    params: None, 
-                    return_type: None, 
+                    params: None,
+                    return_type: None,
                     offset: None,
-                }
+                },
             );
         }
-        
+
         // Evaluate expression for initialiser
         node.expression.accept(self);
 
         // Check if initialiser expression type matches variable type
         self.assert_variable_type(&node.identifier, node.line);
+    }
 
+    fn visit_array_declaration(&mut self, node: &crate::parser::ast::ArrayDeclarationNode) {
+        // Check if variable already exists in current scope
+        if self.check_variable_exists_in_current_scope(&node.identifier) {
+            self.logger.print_error(
+                LoggerError::Semantic,
+                format!(
+                    "Symbol '{}' already exists in current scope.",
+                    node.identifier
+                )
+                .as_str(),
+                node.line,
+            );
+
+            self.status_set(CompilationResult::Failure);
+        } else {
+            // If array size is zero, then get size from initialiser list
+            let size = if node.size == 0 {
+                node.initialiser.as_ref().unwrap().len() as i64
+            } else {
+                node.size
+            };
+            
+            let array_type = SymbolType::from_string(node.type_name.as_str()).unwrap_or(SymbolType::Undefined);
+
+            // Add variable to symbol table
+            self.add_variable_to_current_scope(
+                node.identifier.clone(),
+                SymbolEntry {
+                    name: node.identifier.clone(),
+                    symbol_type: SymbolType::Array(Box::new(array_type), size),
+                    params: None,
+                    return_type: None,
+                    offset: None,
+                },
+            );
+
+            // Evaluate initialisers
+            if let Some(initialisers) = &node.initialiser {
+                // Make sure initialiser list matches array size
+                if initialisers.len() as i64 != size {
+                    self.logger.print_error(
+                        LoggerError::Semantic,
+                        format!(
+                            "Array '{}' has size {}, but {} initialisers provided.",
+                            node.identifier,
+                            size,
+                            initialisers.len()
+                        )
+                        .as_str(),
+                        node.line,
+                    );
+
+                    self.status_set(CompilationResult::Failure);
+                }
+
+                // Typecheck initialisers
+                for initialiser in initialisers {
+                    initialiser.accept(self);
+                    self.assert_array_type(&node.identifier, node.line);
+                }
+            }
+        }
     }
 
     fn visit_function_declaration(&mut self, node: &crate::parser::ast::FunctionDeclarationNode) {
@@ -77,35 +144,44 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
 
             parameters.push(SymbolEntry {
                 name: parameter.identifier.clone(),
-                symbol_type: SymbolType::from_string(parameter.type_name.as_str()).unwrap(),
+                symbol_type: SymbolType::make_type(parameter.type_name.as_str(), parameter.size).unwrap(),
                 params: None,
                 return_type: None,
                 offset: None,
-            });
+            });    
         }
-        
+
+        let return_type = SymbolType::make_type(node.return_type.as_str(), node.return_size);
+
         // Check if function already exists in current scope
         if self.check_variable_exists_in_current_scope(&node.identifier) {
             self.logger.print_error(
-                LoggerError::Semantic, 
-                format!("Function '{}' already exists in current scope.", node.identifier).as_str(),
-                node.line, 
+                LoggerError::Semantic,
+                format!(
+                    "Function '{}' already exists in current scope.",
+                    node.identifier
+                )
+                .as_str(),
+                node.line,
             );
             self.status_set(CompilationResult::Failure);
         } else {
             // Add function to scope
-            self.add_variable_to_current_scope(node.identifier.clone(), 
-            SymbolEntry {
-                name: node.identifier.clone(), 
-                symbol_type: SymbolType::Function,
-                params: Some(parameters.clone()),
-                return_type: SymbolType::from_string(node.return_type.as_str()), 
-                offset: None,
-            });
+            self.add_variable_to_current_scope(
+                node.identifier.clone(),
+                SymbolEntry {
+                    name: node.identifier.clone(),
+                    symbol_type: SymbolType::Function,
+                    params: Some(parameters.clone()),
+                    return_type: return_type.clone(),
+                    offset: None,
+                },
+            );
         }
 
         // Create new scope for function body
-        self.enter_function_scope(SymbolType::from_string(node.return_type.as_str()));
+        // self.enter_function_scope(SymbolType::from_string(node.return_type.as_str()));
+        self.enter_function_scope(return_type.clone());        
 
         for parameter in parameters {
             self.add_variable_to_current_scope(parameter.name.clone(), parameter);
@@ -117,7 +193,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         self.exit_scope();
     }
 
-    fn visit_formal_parameter(&mut self, node: &crate::parser::ast::FormalParameterNode) {        
+    fn visit_formal_parameter(&mut self, node: &crate::parser::ast::FormalParameterNode) {
         // Strictly speaking this is not required since the type is checked during parsing
         // and a syntax error would thrown if the type were invalid
         if let None = SymbolType::from_string(&node.type_name) {
@@ -129,22 +205,33 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
             self.status_set(CompilationResult::Failure);
         }
     }
-    
+
     fn visit_assignment(&mut self, node: &crate::parser::ast::AssignmentNode) {
         // Make sure variable has been declared before assignment
         if !self.check_variable_exists(&node.identifier) {
             self.logger.print_error(
-                LoggerError::Semantic, 
+                LoggerError::Semantic,
                 format!("Variable '{}' used but not declared.", node.identifier).as_str(),
                 node.line,
             );
             self.status_set(CompilationResult::Failure);
         }
 
-        // Evaluate expression
-        node.expression.accept(self);
+        if let Some(index) = &node.array_index {
+            index.accept(self);
+            self.assert_type(SymbolType::Int, "array index", node.line);
 
-        self.assert_variable_type(&node.identifier, node.line);
+            // Evaluate expression
+            node.expression.accept(self);
+
+            self.assert_array_type(&node.identifier, node.line);
+        } else {
+
+            // Evaluate expression
+            node.expression.accept(self);
+
+            self.assert_variable_type(&node.identifier, node.line);
+        }
     }
 
     fn visit_expression(&mut self, node: &crate::parser::ast::ExpressionNode) {
@@ -163,36 +250,45 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
 
         if let Some(operator) = &node.operator {
             if operator == "as" {
-                lhs_type = SymbolType::from_string(&node.type_name.clone().unwrap().as_str()).unwrap();
-            } else {           
+                lhs_type =
+                    SymbolType::from_string(&node.type_name.clone().unwrap().as_str()).unwrap();
+            } else {
                 rhs_type = self.pop_type().unwrap();
 
                 if lhs_type != rhs_type {
                     self.logger.print_error(
-                        LoggerError::Type, 
-                        format!("Mismatching types found in operation '{}' {} '{}'.", lhs_type.to_string(), operator, rhs_type.to_string()).as_str(),
+                        LoggerError::Type,
+                        format!(
+                            "Mismatching types found in operation '{}' {} '{}'.",
+                            lhs_type.to_string(),
+                            operator,
+                            rhs_type.to_string()
+                        )
+                        .as_str(),
                         node.line,
                     );
                     self.status_set(CompilationResult::Failure);
                 }
 
                 match operator.as_str() {
-                    "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "and" | "||" | "or" => lhs_type = SymbolType::Bool,
+                    "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "and" | "||" | "or" => {
+                        lhs_type = SymbolType::Bool
+                    }
                     _ => (),
                 }
             }
-        } 
+        }
 
-        // Push resulting type on stack        
+        // Push resulting type on stack
         self.push_type(lhs_type);
-        
     }
-    
-    fn visit_print(&mut self, node: &crate::parser::ast::ExpressionNode) {
-        node.accept(self);
+
+    fn visit_print(&mut self, node: &crate::parser::ast::PrintNode) {
+        node.arg_expr.accept(self);
 
         // We're fine with printing any type
-        let _ = self.pop_type();
+        let found_type = self.pop_type().unwrap();
+        node.arg_type.replace(SymbolType::to_string(&found_type));
     }
 
     fn visit_delay(&mut self, node: &crate::parser::ast::ExpressionNode) {
@@ -200,7 +296,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         node.accept(self);
         self.assert_type(SymbolType::Int, "__delay", node.line);
     }
-    
+
     fn visit_clear(&mut self, node: &crate::parser::ast::ExpressionNode) {
         // Clear takes a colour typed argument
         node.accept(self);
@@ -215,7 +311,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         // second argument is y position (int)
         node[1].accept(self);
         self.assert_type(SymbolType::Int, "__write", node[1].line);
-        
+
         // third argument is colour (colour)
         node[2].accept(self);
         self.assert_type(SymbolType::Colour, "__write", node[2].line);
@@ -229,7 +325,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         // second argument is y position (int)
         node[1].accept(self);
         self.assert_type(SymbolType::Int, "__write_box", node[1].line);
-        
+
         // third argument is width (int)
         node[2].accept(self);
         self.assert_type(SymbolType::Int, "__write_box", node[2].line);
@@ -243,16 +339,39 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         self.assert_type(SymbolType::Colour, "__write_box", node[4].line);
     }
 
+    fn visit_write_line(&mut self, node: &[crate::parser::ast::ExpressionNode; 5]) {
+        // first argument is x0 position (int)
+        node[0].accept(self);
+        self.assert_type(SymbolType::Int, "__write_line", node[0].line);
+
+        // second argument is y0 position (int)
+        node[1].accept(self);
+        self.assert_type(SymbolType::Int, "__write_line", node[1].line);
+
+        // third argument is x1 position (int)
+        node[2].accept(self);
+        self.assert_type(SymbolType::Int, "__write_line", node[2].line);
+
+        // fourth argument is y1 position (int)
+        node[3].accept(self);
+        self.assert_type(SymbolType::Int, "__write_line", node[3].line);
+
+        // fifth argument is colour (colour)
+        node[4].accept(self);
+        self.assert_type(SymbolType::Colour, "__write_line", node[4].line);
+    }
+
     fn visit_return(&mut self, node: &crate::parser::ast::ExpressionNode) {
         // We're fine with returning any type
         node.accept(self);
 
         let expected_return_type = self.get_scope_return_type();
+
         self.assert_type(expected_return_type.unwrap(), "return", node.line);
     }
 
     fn visit_if(&mut self, node: &crate::parser::ast::IfNode) {
-        // Condition expression should be a boolean        
+        // Condition expression should be a boolean
         node.condition.accept(self);
         self.assert_type(SymbolType::Bool, "if", node.line);
 
@@ -275,7 +394,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
 
     fn visit_for(&mut self, node: &crate::parser::ast::ForNode) {
         self.enter_scope();
-        
+
         if let Some(initialiser) = &node.initialiser.as_ref() {
             initialiser.accept(self);
         }
@@ -328,7 +447,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         self.push_type(SymbolType::Int);
     }
 
-    fn visit_read(&mut self, node: &[std::rc::Rc<crate::parser::ast::ExpressionNode>; 2]) {       
+    fn visit_read(&mut self, node: &[std::rc::Rc<crate::parser::ast::ExpressionNode>; 2]) {
         // first argument is x position (int)
         node[0].accept(self);
         self.assert_type(SymbolType::Int, "__read", node[0].line);
@@ -336,7 +455,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         // second argument is y position (int)
         node[1].accept(self);
         self.assert_type(SymbolType::Int, "__read", node[1].line);
-        
+
         // Return type is colour
         self.push_type(SymbolType::Colour);
     }
@@ -345,10 +464,10 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         let symbol = self.get_variable_type(&value);
 
         if symbol.is_none() {
-            self.logger.print_short_error (
-                LoggerError::Semantic, 
+            self.logger.print_short_error(
+                LoggerError::Semantic,
                 format!("Variable '{}' used but not declared.", value).as_str(),
-            );            
+            );
 
             self.status_set(CompilationResult::Failure);
 
@@ -363,18 +482,17 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         // Make sure function has been declared
         if self.check_variable_type(&node.identifier, SymbolType::Function) == false {
             self.logger.print_error(
-                LoggerError::Semantic, 
+                LoggerError::Semantic,
                 format!("Function '{}' has not been declared", node.identifier).as_str(),
                 node.line,
             );
             self.status_set(CompilationResult::Failure);
         }
 
-        if let Some(arg_types) = self.get_function_argument_types(&node.identifier) 
-        {
+        if let Some(arg_types) = self.get_function_argument_types(&node.identifier) {
             let arg_count = arg_types.len();
             let provided_arg_count = node.arguments.len();
-        
+
             // Make sure correct number of arguments have been provided
             if arg_count != provided_arg_count {
                 self.logger.print_error(
@@ -387,11 +505,14 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
                 );
                 self.status_set(CompilationResult::Failure);
             }
-        
+
             // Typecheck arguments
-            for (i, (argument, argument_type)) in node.arguments.iter().zip(arg_types.iter()).enumerate() {
+            for (i, (argument, argument_type)) in
+                node.arguments.iter().zip(arg_types.iter()).enumerate()
+            {
                 argument.accept(self);
-        
+
+                // Need to extend typecheck to handle arrays
                 self.assert_type(
                     argument_type.symbol_type.clone(),
                     &format!("In function {}, argument {},", node.identifier, i),
@@ -399,7 +520,7 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
                 );
             }
         }
-        
+
         // Typecheck return type
         let return_type = self.get_function_return_type(&node.identifier);
         // If function has no return type, push Undefined to stack (for error recovery)
@@ -408,6 +529,33 @@ impl AbstractSyntaxTreeVisitor for SemanticAnalyser<'_> {
         } else {
             self.push_type(return_type.unwrap());
         }
+    }
+
+    fn visit_array_access(&mut self, node: &crate::parser::ast::ArrayAccessNode) {
+        let variable_type = self.get_variable_type(&node.identifier).clone();
+
+        if !matches!(variable_type, Some(SymbolType::Array(_, _))) {
+            self.logger.print_error(
+                LoggerError::Semantic,
+                format!("Array '{}' has not been declared", node.identifier).as_str(),
+                node.line,
+            );
+
+            self.status_set(CompilationResult::Failure);
+        }
+
+        // Typecheck index
+        node.index.accept(self);
+
+        self.assert_type(
+            SymbolType::Int,
+            &format!("Array {}, accessed using non-integer index type", node.identifier),
+            node.line,
+        );
+
+        // Push array type onto stack
+        let array_type = self.get_array_type(&node.identifier);
+        self.push_type(array_type.unwrap());
     }
 
     fn visit_subexpression(&mut self, node: &std::rc::Rc<crate::parser::ast::ExpressionNode>) {

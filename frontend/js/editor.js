@@ -131,56 +131,8 @@ export function getEditorValue() {
 }
 
 function getDefaultCode() {
-    return `// Bouncing ball example
-fun to_int(a:float) -> int {
-    let b:int = 0;
-    if (a > 0.0) {
-        while (a > 0.5) {
-            a = a - 1.0;
-            b = b + 1;
-        }
-    } else {
-        while (a < -0.5) {
-            a = a + 1.0;
-            b = b - 1;
-        }
-    }
-
-    return b;
-}
-
-fun draw_ball(x:float, y:float, r:float, c:colour) -> bool
-{
-    let half_r:float = r / 2.0;
-    let x1:int = to_int((x - half_r));
-    let y1:int = to_int((y - half_r));
-    let r1:int = r as int;
-
-    __clear #778899;
-    __write_box x1, y1, r1, r1, c;
-
-    return true;
-}
-
-let result:bool = true;
-let velocity_x:float = ((__random_int 10) / 10) as float;
-let velocity_y:float = 0.0 - ((__random_int 10) / 10) as float;
-
-let x:float = (__width / 2) as float;
-let y:float = (__height / 2) as float;
-let r:float = 3.0;
-
-while (true) {
-    y = y + velocity_y;
-    velocity_y = velocity_y - 0.1;
-    if ((y - r) < 0.0) {
-        if (velocity_y < 0.0) {
-            velocity_y = 0.0 - velocity_y;
-        }
-    }
-
-    result = draw_ball(x, y, r, #FFFFFF);
-}`;
+    return `__clear #000000;
+// Write your code here...`;
 }
 
 export function setupAutoSave() {

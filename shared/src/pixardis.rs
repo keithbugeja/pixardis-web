@@ -8,15 +8,20 @@ pub enum PixardisInstruction {
     PushLabel(String),
     PushOffset(i64),
     PushIndexed([i64; 2]),
+    PushIndexedOffset([i64; 2]),
+    PushArray([i64; 2]),
     Store,
+    StoreArray,
     Nop,
     Drop,
     Duplicate,
+    DuplicateArray,
     Not,
     Add,
     Subtract,
     Multiply,
     Divide,
+    Modulo,
     Increment,
     Decrement,
     Maximum,
@@ -31,6 +36,7 @@ pub enum PixardisInstruction {
     ConditionalJump,
     Call,
     Return,
+    ReturnArray,
     Halt,
     FrameOpen,
     FrameClose,
@@ -38,11 +44,13 @@ pub enum PixardisInstruction {
     Delay,
     Write,
     WriteBox,
+    WriteLine,
     Read,
     Clear,
     Width,
     Height,
     Print,
+    PrintArray,
 }
 
 pub fn pixardis_instruction_from_string(instruction: String) -> PixardisInstruction {
@@ -57,14 +65,17 @@ pub fn pixardis_instruction_from_string(instruction: String) -> PixardisInstruct
     {
         match instruction_filtered[0] {
             "st" => PixardisInstruction::Store,
+            "sta" => PixardisInstruction::StoreArray,
             "nop" => PixardisInstruction::Nop,
             "drop" | "pop" => PixardisInstruction::Drop,
             "dup" => PixardisInstruction::Duplicate,
+            "dupa" => PixardisInstruction::DuplicateArray,
             "not" => PixardisInstruction::Not,
             "add" => PixardisInstruction::Add,
             "sub" => PixardisInstruction::Subtract,
             "mul" => PixardisInstruction::Multiply,
             "div" => PixardisInstruction::Divide,
+            "mod" => PixardisInstruction::Modulo,
             "inc" => PixardisInstruction::Increment,
             "dec" => PixardisInstruction::Decrement,
             "max" => PixardisInstruction::Maximum,
@@ -76,21 +87,24 @@ pub fn pixardis_instruction_from_string(instruction: String) -> PixardisInstruct
             "ge" => PixardisInstruction::GreaterEqual,
             "eq" => PixardisInstruction::Equal,
             "jmp" => PixardisInstruction::Jump,
-            "cjmp2" => PixardisInstruction::ConditionalJump,
+            "cjmp" | "cjmp2" => PixardisInstruction::ConditionalJump,
             "call" => PixardisInstruction::Call,
             "ret" => PixardisInstruction::Return,
+            "reta" => PixardisInstruction::ReturnArray,
             "halt" => PixardisInstruction::Halt,
             "oframe" => PixardisInstruction::FrameOpen,
             "cframe" => PixardisInstruction::FrameClose,
             "alloc" => PixardisInstruction::Allocate,
             "delay" => PixardisInstruction::Delay,
-            "pixel" | "write" => PixardisInstruction::Write,
-            "pixelr" | "writebox"  => PixardisInstruction::WriteBox,
+            "write" | "pixel" => PixardisInstruction::Write,
+            "writebox" | "pixelr" => PixardisInstruction::WriteBox,
+            "writeline" | "pixell" => PixardisInstruction::WriteLine,
             "read" => PixardisInstruction::Read,
             "clear" => PixardisInstruction::Clear,
             "width" => PixardisInstruction::Width,
             "height" => PixardisInstruction::Height,
             "print" => PixardisInstruction::Print,
+            "printa" => PixardisInstruction::PrintArray,
             value => {
                 let mut instruction = PixardisInstruction::Nop;
 
@@ -111,14 +125,15 @@ pub fn pixardis_instruction_from_string(instruction: String) -> PixardisInstruct
             // push .label  - Push label
             // push #PC±n   - Push program counter +/- n
             // push [i:s]   - Push value onto scope stack
+            // push +[i:s]  - Push value onto scope stack and increment index
             ["push", value] => {
                 let mut instruction = PixardisInstruction::Nop;
                 
                 let pattern = Regex::new(
-                    r"^(?P<colour>#([0-9a-fA-F]{6}))|(?P<number>-?\d+(?:\.\d+)?)|\.(?P<label>[a-zA-Z][a-zA-Z0-9_]*)|(#PC(?P<offset>[+-]\d+))|(\[(?P<index>\d+):(?P<scope>\d+)\])$"            
+                    r"^(?P<colour>#([0-9a-fA-F]{6}))|(?P<number>-?\d+(?:\.\d+)?)|\.(?P<label>[a-zA-Z][a-zA-Z0-9_]*)|(#PC(?P<offset>[+-]\d+))|(\[(?P<index>\d+):(?P<scope>\d+)\])|(\+\[(?P<offset_index>\d+):(?P<offset_scope>\d+)\])$"
                 ).unwrap();
             
-                for captures in pattern.captures_iter(value.clone().trim()) {
+                for captures in pattern.captures_iter((*value).trim()) {
                     // push number
                     if let Some(num) = captures.name("number") {
                         instruction = PixardisInstruction::PushImmediate(num.as_str().to_string());
@@ -141,10 +156,38 @@ pub fn pixardis_instruction_from_string(instruction: String) -> PixardisInstruct
                         let scope_value = num2.as_str().parse::<i64>().unwrap();
                         instruction = PixardisInstruction::PushIndexed([index_value, scope_value]);
                     }
+                    // push +[offset_index:offset_scope]
+                    else if let (Some(num1), Some(num2)) = (captures.name("offset_index"), captures.name("offset_scope")) {
+                        let index_value = num1.as_str().parse::<i64>().unwrap();
+                        let scope_value = num2.as_str().parse::<i64>().unwrap();
+                        instruction = PixardisInstruction::PushIndexedOffset([index_value, scope_value]);
+                    }
                 }
 
                 instruction
-            }
+            },
+            // Push array has a single variant so far; I'm considering adding a second
+            // variant that includes the count of elements to push.
+            //
+            // pusha [i:s] - Push value array onto stack
+            ["pusha", value] => {
+                let mut instruction = PixardisInstruction::Nop;
+                
+                let pattern = Regex::new(
+                    r"^(\[(?P<index>\d+):(?P<scope>\d+)\])$"
+                ).unwrap();
+            
+                for captures in pattern.captures_iter((*value).trim()) {
+                    // pusha [offset_index:offset_scope]
+                    if let (Some(num1), Some(num2)) = (captures.name("index"), captures.name("scope")) {
+                        let index_value = num1.as_str().parse::<i64>().unwrap();
+                        let scope_value = num2.as_str().parse::<i64>().unwrap();
+                        instruction = PixardisInstruction::PushArray([index_value, scope_value]);
+                    }
+                }
+
+                instruction
+            },
             _ => PixardisInstruction::Nop,
         }
     }
@@ -163,15 +206,20 @@ pub fn pixardis_instruction_to_string(instruction: PixardisInstruction) -> Strin
             }
         }
         PixardisInstruction::PushIndexed([index, frame]) => format!("push [{}:{}]", index, frame),
+        PixardisInstruction::PushIndexedOffset([index, frame]) => format!("push +[{}:{}]", index, frame),
+        PixardisInstruction::PushArray([index, frame]) => format!("pusha [{}:{}]", index, frame),
         PixardisInstruction::Store => String::from("st"),
+        PixardisInstruction::StoreArray => String::from("sta"),
         PixardisInstruction::Nop => String::from("nop"),
         PixardisInstruction::Not => String::from("not"),
         PixardisInstruction::Drop => String::from("drop"),
         PixardisInstruction::Duplicate => String::from("dup"),
+        PixardisInstruction::DuplicateArray => String::from("dupa"),
         PixardisInstruction::Add => String::from("add"),
         PixardisInstruction::Subtract => String::from("sub"),
         PixardisInstruction::Multiply => String::from("mul"),
         PixardisInstruction::Divide => String::from("div"),
+        PixardisInstruction::Modulo => String::from("mod"),
         PixardisInstruction::Increment => String::from("inc"),
         PixardisInstruction::Decrement => String::from("dec"),
         PixardisInstruction::Maximum => String::from("max"),
@@ -183,21 +231,24 @@ pub fn pixardis_instruction_to_string(instruction: PixardisInstruction) -> Strin
         PixardisInstruction::GreaterEqual => String::from("ge"),
         PixardisInstruction::Equal => String::from("eq"),
         PixardisInstruction::Jump => String::from("jmp"),
-        PixardisInstruction::ConditionalJump => String::from("cjmp2"),
+        PixardisInstruction::ConditionalJump => String::from("cjmp"),
         PixardisInstruction::Call => String::from("call"),
         PixardisInstruction::Return => String::from("ret"),
+        PixardisInstruction::ReturnArray => String::from("reta"),
         PixardisInstruction::Halt => String::from("halt"),
         PixardisInstruction::FrameOpen => String::from("oframe"),
         PixardisInstruction::FrameClose => String::from("cframe"),
         PixardisInstruction::Allocate => String::from("alloc"),
         PixardisInstruction::Delay => String::from("delay"),
-        PixardisInstruction::Write => String::from("pixel"),
-        PixardisInstruction::WriteBox => String::from("pixelr"),
+        PixardisInstruction::Write => String::from("write"),
+        PixardisInstruction::WriteBox => String::from("writebox"),
+        PixardisInstruction::WriteLine => String::from("writeline"),
         PixardisInstruction::Read => String::from("read"),
         PixardisInstruction::Clear => String::from("clear"),
         PixardisInstruction::Width => String::from("width"),
         PixardisInstruction::Height => String::from("height"),
         PixardisInstruction::Print => String::from("print"),
+        PixardisInstruction::PrintArray => String::from("printa"),
     }
 }
 

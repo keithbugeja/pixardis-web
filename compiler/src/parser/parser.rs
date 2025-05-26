@@ -1,10 +1,9 @@
-use crate::common::{
-    status::CompilationResult,
+use crate::{analysis::symbol::SymbolType, common::{
     logger::{
         Logger, 
         LoggerError
-    }
-};
+    }, status::CompilationResult
+}};
 
 use crate::lexer::{
     lexer::Lexer,
@@ -13,7 +12,7 @@ use crate::lexer::{
 
 use super::ast::*;
 
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 pub struct Parser<'a> {
     lexer: Lexer <'a>,
@@ -46,6 +45,30 @@ impl<'a> Parser<'a> {
 
     pub fn get_syntax_tree(&self) -> Option<ProgramNode> {
         self.syntax_tree.clone()
+    }
+
+    // Get next additive operator
+    pub fn peek_additive_operator(&mut self) -> Option<String> {
+        match &self.lexer.peek_token().unwrap().kind {
+            TokenKind::AdditiveOp(s) => Some(s.clone()),
+            _ => None,
+        }
+    }
+
+    // Get next multiplicative operator
+    pub fn peek_multiplicative_operator(&mut self) -> Option<String> {
+        match &self.lexer.peek_token().unwrap().kind {
+            TokenKind::MultiplicativeOp(s) => Some(s.clone()),
+            _ => None,
+        }
+    }
+
+    // Get next relational operator
+    pub fn peek_relational_operator(&mut self) -> Option<String> {
+        match &self.lexer.peek_token().unwrap().kind {
+            TokenKind::RelationalOp(s) => Some(s.clone()),
+            _ => None,
+        }
     }
 
     // parse lexer tokens into AST
@@ -116,7 +139,7 @@ impl<'a> Parser<'a> {
 
     // parse a series of statements enclosed in braces
     pub fn parse_statement_block(&mut self, is_unscoped_block: bool) -> Option<StatementNode> {
-        let _ = self.parse_token(TokenKind::OpenBrace).ok()?;
+        self.parse_token(TokenKind::OpenBrace).ok()?;
         
         let mut statements = Vec::new();
 
@@ -203,7 +226,7 @@ impl<'a> Parser<'a> {
 
         // some statements end in a semicolon
         if semicolon {
-            let _ = self.parse_token(TokenKind::SemiColon);
+            self.parse_token(TokenKind::SemiColon).ok()?;
         }
 
         result
@@ -281,7 +304,7 @@ impl<'a> Parser<'a> {
             },
         };
         
-        // If we fetched an identifier, make sure it's not a function call
+        // If we fetched an identifier, make sure it's not a function call or an array
         match result { 
             FactorNode::Identifier(_) => {                 
                 if self.lexer.peek_k_tokens(1).unwrap().kind == TokenKind::OpenParen {
@@ -289,7 +312,14 @@ impl<'a> Parser<'a> {
                     result = match self.parse_function_call() {
                         Some(function_call) => FactorNode::FunctionCall(function_call),
                         _ => return None,
-                    };
+                    }
+                }
+                else if self.lexer.peek_k_tokens(1).unwrap().kind == TokenKind::OpenBracket {
+                    advance_token = false;
+                    result = match self.parse_array_access() {
+                        Some(array_access) => FactorNode::ArrayAccess(array_access),
+                        _ => return None,
+                    }
                 }
             }
             _ => {}
@@ -303,91 +333,99 @@ impl<'a> Parser<'a> {
         Some(result)
     }
 
+    // parse relational expression
+    pub fn parse_relational_expression(&mut self) -> Option<ExpressionNode> { 
+        let mut left_expr = self.parse_additive_expression()?;
+    
+        while let Some(operator) = self.peek_relational_operator() {
+            self.lexer.next_token(); // Consume the operator
+            let right_expr = self.parse_additive_expression()?;
+            left_expr = ExpressionNode {
+                factor: FactorNode::Subexpression(Rc::new(left_expr)),
+                operator: Some(operator),
+                expression: Rc::new(Some(right_expr)),
+                type_name: None,
+                line: self.get_line_number(),
+            };
+        }
+        
+        Some(left_expr)
+    }
+
+    // parse additive expression
+    pub fn parse_additive_expression(&mut self) -> Option<ExpressionNode> { 
+        let mut left_expr = self.parse_multiplicative_expression()?;
+    
+        while let Some(operator) = self.peek_additive_operator() {
+            self.lexer.next_token(); // Consume the operator
+            let right_expr = self.parse_multiplicative_expression()?;
+            left_expr = ExpressionNode {
+                factor: FactorNode::Subexpression(Rc::new(left_expr)),
+                operator: Some(operator),
+                expression: Rc::new(Some(right_expr)),
+                type_name: None,
+                line: self.get_line_number(),
+            };
+        }
+        
+        Some(left_expr)
+    }
+
+    // parse multiplicative expression
+    pub fn parse_multiplicative_expression(&mut self) -> Option<ExpressionNode> {         
+        // Parse factor
+        let factor = self.parse_factor()?;
+
+        // Build LHS expression node
+        let mut left_expr = ExpressionNode {
+            factor: factor,
+            operator: None,
+            expression: Rc::new(None),
+            type_name: None,
+            line: self.get_line_number(),
+        };
+
+        // Check for and handle the "as" operator for typecasting
+        if let Some(TokenKind::As) = self.lexer.peek_token().map(|t| t.kind.clone()) {
+            self.lexer.next_token();
+
+            let type_name = match &self.lexer.next_token().unwrap().kind {
+                TokenKind::Type(s) => s.clone(),
+                _ => {
+                    self.logger.print_error(
+                        LoggerError::Syntax, 
+                        "Invalid typecast; expected type after 'as'.",
+                        self.get_line_number()
+                    );
+                    return None;
+                },
+            };
+
+            // Turn LHS expression node into a typecast expression node
+            left_expr.operator = Some(String::from("as"));
+            left_expr.type_name = Some(type_name);
+
+            return Some(left_expr);
+        }
+
+        while let Some(operator) = self.peek_multiplicative_operator() {
+            self.lexer.next_token();
+            let right_expr = self.parse_multiplicative_expression()?;
+            left_expr = ExpressionNode {
+                factor: FactorNode::Subexpression(Rc::new(left_expr)),
+                operator: Some(operator),
+                expression: Rc::new(Some(right_expr)),
+                type_name: None,
+                line: self.get_line_number(),
+            };
+        }
+        
+        Some(left_expr)
+    }
+
     // parse expression
     pub fn parse_expression(&mut self) -> Option<ExpressionNode> {
-        let line_number = self.get_line_number();
-
-        let factor = match self.parse_factor() {
-            Some(factor) => factor,
-            _ => { 
-                self.logger.print_error(
-                    LoggerError::Syntax, 
-                    "Invalid expression encountered.",
-                    self.get_line_number()
-                );
-
-                self.status_set(CompilationResult::Failure);
-
-                return None 
-            },
-        };
-
-        let operator = match &self.lexer.peek_token().unwrap().kind {
-            TokenKind::AdditiveOp(s) => s.clone(),
-            TokenKind::MultiplicativeOp(s) => s.clone(),
-            TokenKind::RelationalOp(s) => s.clone(),
-            
-            // Return the typecasting expression if we have an 'as' operator
-            TokenKind::As => {
-                self.lexer.next_token();
-
-                let type_name = match &self.lexer.next_token().unwrap().kind {
-                    TokenKind::Type(s) => s.clone(),
-                    _ => {
-                        self.logger.print_error(
-                            LoggerError::Syntax, 
-                            "Invalid variable declaration. Expected type.",
-                            self.get_line_number()
-                        );
-                        return None
-                    },
-                };
-
-                return Some(ExpressionNode {
-                    factor: factor,
-                    operator: Some(String::from("as")),
-                    expression: Rc::new(None),
-                    type_name: Some(type_name),
-                    line: line_number,
-                });
-            }
-            
-            // Return the factor if we don't have an operator
-            _ => return Some(ExpressionNode {
-                factor: factor,
-                operator: None,
-                expression: Rc::new(None),
-                type_name: None,
-                line: line_number,
-            }),
-        };
-
-        self.lexer.next_token();
-
-        let expression = match self.parse_expression() {
-            Some(expression) => Rc::<Option<ExpressionNode>>::new(Some(expression)),
-            _ => { 
-                self.logger.print_error(
-                    LoggerError::Syntax, 
-                    "Invalid expression encountered.",
-                    self.get_line_number()
-                );
-
-                self.status_set(CompilationResult::Failure);
-       
-                return None
-            },
-        };
-
-        let expression_node = ExpressionNode {
-            factor: factor,
-            operator: Some(operator),
-            expression: expression,
-            type_name: None,
-            line: line_number,
-        };
-
-        Some(expression_node)
+        self.parse_relational_expression()
     }
 
     // parse subexpression '(' + expression + ')'
@@ -419,11 +457,11 @@ impl<'a> Parser<'a> {
 
                 self.status_set(CompilationResult::Failure);
 
-                return None
+                return None;
             },
         };
 
-        let _ = self.parse_token(TokenKind::Colon).ok()?;
+        self.parse_token(TokenKind::Colon).ok()?;
 
         let type_name = match &self.lexer.next_token().unwrap().kind {
             TokenKind::Type(s) => s.clone(),
@@ -432,14 +470,35 @@ impl<'a> Parser<'a> {
                     LoggerError::Syntax, 
                     "Invalid formal parameter. Type expected.",
                     self.get_line_number()
-                );
-                return None
+                );                
+                return None;
             },
         };
+
+        let mut type_size = 0;
+
+        if self.lexer.peek_token().unwrap().kind == TokenKind::OpenBracket {
+            let _ = self.lexer.next_token();
+
+            type_size = match &self.lexer.next_token().unwrap().kind {
+                TokenKind::IntegerLiteral(i) => i.clone(),
+                _ => {
+                    self.logger.print_error(
+                        LoggerError::Syntax, 
+                        "Invalid formal parameter. Array size expected.",
+                        self.get_line_number()
+                    );
+                    return None;
+                },
+            };
+
+            self.parse_token(TokenKind::CloseBracket).ok()?;
+        }
 
         Some(FormalParameterNode {
             identifier: identifier,
             type_name: type_name,
+            size: type_size,
             line: line_number,
         })
     }
@@ -469,7 +528,7 @@ impl<'a> Parser<'a> {
     pub fn parse_function_declaration(&mut self) -> Option<StatementNode> {
         let line_number = self.get_line_number();
         
-        let _ = self.parse_token(TokenKind::Fun).ok()?;
+        self.parse_token(TokenKind::Fun).ok()?;
 
         let identifier = match &self.lexer.next_token().unwrap().kind {
             TokenKind::Identifier(s) => s.clone(),
@@ -486,7 +545,7 @@ impl<'a> Parser<'a> {
             },
         };
 
-        let _ = self.parse_token(TokenKind::OpenParen).ok()?;
+        self.parse_token(TokenKind::OpenParen).ok()?;
 
         let formal_parameters = match self.parse_formal_parameter_list() {
             Some(formal_parameters) => formal_parameters,
@@ -500,9 +559,10 @@ impl<'a> Parser<'a> {
             },
         };
 
-        let _ = self.parse_token(TokenKind::CloseParen).ok()?;
-        let _ = self.parse_token(TokenKind::Arrow).ok()?;
+        self.parse_token(TokenKind::CloseParen).ok()?;
+        self.parse_token(TokenKind::Arrow).ok()?;
 
+        // Return can be array type
         let return_type = match &self.lexer.next_token().unwrap().kind {
             TokenKind::Type(s) => s.clone(),
             _ => { 
@@ -515,6 +575,29 @@ impl<'a> Parser<'a> {
             },
         };
 
+        // If we have an array type, parse the size
+        let return_size = if self.lexer.peek_token().unwrap().kind == TokenKind::OpenBracket {
+            let _ = self.lexer.next_token();
+        
+            match self.lexer.next_token().unwrap().kind {
+                TokenKind::IntegerLiteral(i) => {
+                    self.parse_token(TokenKind::CloseBracket).ok()?;
+                    i.clone() 
+                },
+                _ => {
+                    self.logger.print_error(
+                        LoggerError::Syntax, 
+                        "Invalid function declaration. Array size expected.",
+                        self.get_line_number()
+                    );
+
+                    return None;
+                },
+            }
+        } else {
+            0
+        };
+        
         let body = match self.parse_statement_block(true) {
             Some(body) => Rc::new(body),
             _ => return None,
@@ -524,6 +607,7 @@ impl<'a> Parser<'a> {
             identifier,
             formal_parameters,
             return_type,
+            return_size,
             body,
             line: line_number,
         };
@@ -571,9 +655,9 @@ impl<'a> Parser<'a> {
 
             if self.lexer.peek_token().unwrap().kind != TokenKind::Comma {
                 break;
-            } else {
-                self.lexer.next_token();
-            }
+            } 
+            
+            self.lexer.next_token();
         }
 
         let _ = self.parse_token(TokenKind::CloseParen).ok()?;
@@ -583,6 +667,46 @@ impl<'a> Parser<'a> {
             arguments,
             line: line_number,
         })
+    }
+
+    // parse a reference to an array element
+    pub fn parse_array_access(&mut self) -> Option<ArrayAccessNode> {
+        let line_number = self.get_line_number();
+        
+        let identifier = match &self.lexer.next_token().unwrap().kind {
+            TokenKind::Identifier(s) => s.clone(),
+            _ => { 
+                self.logger.print_error(
+                    LoggerError::Syntax, 
+                    "Invalid array access. Expected array name.",
+                    self.get_line_number()
+                );
+
+                self.status_set(CompilationResult::Failure);
+
+                return None;
+            },
+        };
+
+        // Parse array index
+        self.parse_token(TokenKind::OpenBracket).ok()?;
+
+        if let Some(index) = self.parse_expression() {
+            self.parse_token(TokenKind::CloseBracket).ok()?;
+            return Some(ArrayAccessNode {
+                identifier,
+                index: Rc::new(index),
+                line: line_number,
+            });
+        }
+
+        self.logger.print_error(
+            LoggerError::Syntax, 
+            "Invalid variable declaration. Expected array size.",
+            self.get_line_number()
+        );
+
+        None
     }
 
     // parse while statement
@@ -706,16 +830,17 @@ impl<'a> Parser<'a> {
             },
         };
 
-        let else_block;
-
-        let _ = match self.lexer.peek_token().unwrap().kind {
-            TokenKind::Else => {
-                self.lexer.next_token();
-                else_block = Rc::new(self.parse_statement_block(false));
+        let else_block = match self.lexer.peek_token() {
+            Some(token) => {
+                match token.kind {
+                    TokenKind::Else => {
+                        self.lexer.next_token(); // Consume the 'else' token
+                        Rc::new(self.parse_statement_block(false))
+                    },
+                    _ => Rc::new(None),
+                }
             },
-            _ => {
-                else_block = Rc::new(None);
-            },
+            None => Rc::new(None), // Handle EOF case
         };
 
         Some(StatementNode::If(IfNode {
@@ -729,6 +854,8 @@ impl<'a> Parser<'a> {
 
     // parse print statement
     pub fn parse_print(&mut self) -> Option<StatementNode>{
+        let line_number = self.get_line_number();
+
         let _ = self.parse_token(TokenKind::Print).ok()?;
 
         let expression = match self.parse_expression() {
@@ -737,7 +864,7 @@ impl<'a> Parser<'a> {
                 self.logger.print_error(
                     LoggerError::Syntax, 
                     "Invalid __print statement declaration. Expression expected.",
-                    self.get_line_number()
+                    line_number
                 );
 
                 self.status_set(CompilationResult::Failure);
@@ -746,7 +873,11 @@ impl<'a> Parser<'a> {
             },
         };
 
-        Some(StatementNode::Print(expression))
+        Some(StatementNode::Print(PrintNode {
+            arg_expr: expression,
+            arg_type: RefCell::new(SymbolType::to_string(&SymbolType::Undefined)),
+            line: line_number,
+        }))
     }
 
     // parse delay statement
@@ -855,12 +986,35 @@ impl<'a> Parser<'a> {
         ]))
     }
 
+    // parse write_line statement
+    pub fn parse_write_line(&mut self) -> Option<StatementNode>{
+        let _ = self.parse_token(TokenKind::WriteLine).ok()?;
+
+        let expression_x0 = self.parse_expression()?;
+        let _ = self.parse_token(TokenKind::Comma).ok()?;
+        let expression_y0 = self.parse_expression()?;
+        let _ = self.parse_token(TokenKind::Comma).ok()?;
+        let expression_x1 = self.parse_expression()?;
+        let _ = self.parse_token(TokenKind::Comma).ok()?;
+        let expression_y1 = self.parse_expression()?;
+        let _ = self.parse_token(TokenKind::Comma).ok()?;
+        let expression_color = self.parse_expression()?;
+
+        Some (StatementNode::WriteLine([
+            expression_x0, 
+            expression_y0, 
+            expression_x1, 
+            expression_y1, 
+            expression_color
+        ]))
+    }
+
     // parse variable declaration
     pub fn parse_variable_declaration(&mut self) -> Option<StatementNode>{
-        let line_number = self.get_line_number();
-        
+        let line_number = self.get_line_number();        
         let _ = self.parse_token(TokenKind::Let).ok()?;
         
+        // Parse variable name
         let identifier = match &self.lexer.next_token().unwrap().kind {
             TokenKind::Identifier(s) => s.clone(),
             _ => {
@@ -872,10 +1026,11 @@ impl<'a> Parser<'a> {
 
                 self.status_set(CompilationResult::Failure);
 
-                return None
+                return None;
             },
         };
 
+        // Parse type
         let _ = self.parse_token(TokenKind::Colon).ok()?;
 
         let type_name = match &self.lexer.next_token().unwrap().kind {
@@ -886,32 +1041,121 @@ impl<'a> Parser<'a> {
                     "Invalid variable declaration. Expected type.",
                     self.get_line_number()
                 );
-                return None
+
+                return None;
             },
         };
 
-        let _ = self.parse_token(TokenKind::Equals).ok()?;
+        // If we have an equals sign, parse the initialiser
+        if let TokenKind::Equals = self.lexer.peek_token().unwrap().kind {
+            let _ = self.parse_token(TokenKind::Equals).ok()?;
 
-        let expression = match self.parse_expression() {
-            Some(expression) => expression,
+            let expression = match self.parse_expression() {
+                Some(expression) => expression,
+                _ => {
+                    self.logger.print_error(
+                        LoggerError::Syntax, 
+                        "Invalid variable declaration. Expected RHS expression.",
+                        self.get_line_number()
+                    );
+
+                    return None;
+                },
+            };
+    
+            let variable_declaration_node = VariableDeclarationNode {
+                identifier: identifier,
+                type_name: type_name,
+                expression: expression,
+                line: line_number,
+            };
+    
+            return Some(StatementNode::VariableDeclaration(variable_declaration_node));
+        }
+        
+        // If we don't have an equals sign, we're initialising an array type
+        let _ = self.parse_token(TokenKind::OpenBracket).ok()?;
+
+        let mut advance_token = true;
+
+        let size = match &self.lexer.next_token().unwrap().kind {
+            TokenKind::IntegerLiteral(i) => i.clone(),
+            TokenKind::CloseBracket => { 
+                advance_token = false;
+                0
+            },
             _ => {
                 self.logger.print_error(
                     LoggerError::Syntax, 
-                    "Invalid variable declaration. Expected RHS expression.",
+                    "Invalid variable declaration. Expected array size.",
                     self.get_line_number()
                 );
-                return None
+                
+                return None;
             },
         };
 
-        let variable_declaration_node = VariableDeclarationNode {
-            identifier: identifier,
-            type_name: type_name,
-            expression: expression,
-            line: line_number,
-        };
+        if advance_token {
+            let _ = self.parse_token(TokenKind::CloseBracket).ok()?;
+        }
 
-        Some(StatementNode::VariableDeclaration(variable_declaration_node))
+        // Parse assignment
+        let _ = self.parse_token(TokenKind::Equals).ok()?;
+
+        // Parse array initialiser
+        let _ = self.parse_token(TokenKind::OpenBracket).ok()?;
+    
+        // If we have an empty array initialiser, we're done
+        if self.lexer.peek_token().unwrap().kind == TokenKind::CloseBracket
+        {
+            self.lexer.next_token();
+
+            if size == 0 {
+                self.logger.print_error(
+                    LoggerError::Syntax, 
+                    "Invalid variable declaration. Expected array initialiser for unspecified size.",
+                    self.get_line_number()
+                );
+                
+                return None;
+            }
+
+            let array_declaration_node = ArrayDeclarationNode {
+                identifier,
+                type_name,
+                size,
+                initialiser: None,
+                line: line_number,
+            };
+
+            return Some(StatementNode::ArrayDeclaration(array_declaration_node));
+        }
+
+        // Parse arguments for array initialiser
+        let mut arguments = Vec::new();
+
+        while let Some(expression) = self.parse_expression() 
+        {
+            arguments.push(expression);
+
+            if self.lexer.peek_token().unwrap().kind != TokenKind::Comma {
+                break;
+            } else {
+                self.lexer.next_token();
+            }
+        }
+    
+        let _ = self.parse_token(TokenKind::CloseBracket).ok()?;
+
+        let array_declaration_node = ArrayDeclarationNode {
+                identifier,
+                type_name,
+                size,
+                initialiser: Some(arguments),
+                line: line_number,
+            };
+                
+        Some(StatementNode::ArrayDeclaration(array_declaration_node))
     }
 
     // parse assignment
@@ -929,10 +1173,37 @@ impl<'a> Parser<'a> {
 
                 self.status_set(CompilationResult::Failure);
 
-                return None
+                return None;
             },
         };
 
+        let mut array_index = None;
+
+        // Need to check for array indexing
+        if self.lexer.peek_token().unwrap().kind == TokenKind::OpenBracket {            
+            let _ = self.parse_token(TokenKind::OpenBracket).ok()?;
+
+            let index = match self.parse_expression() {
+                Some(expression) => expression,
+                _ => {
+                    self.logger.print_error(
+                        LoggerError::Syntax, 
+                        "Invalid assignment. Expected array index.",
+                        self.get_line_number()
+                    );
+
+                    self.status_set(CompilationResult::Failure);
+
+                    return None;
+                },
+            };
+
+            let _ = self.parse_token(TokenKind::CloseBracket).ok()?;
+
+            array_index = Some(index);
+        }
+
+        // Add support for array indexing
         let _ = self.parse_token(TokenKind::Equals).ok()?;
 
         let expression = match self.parse_expression() {
@@ -946,12 +1217,13 @@ impl<'a> Parser<'a> {
 
                 self.status_set(CompilationResult::Failure);
 
-                return None
+                return None;
             },
         };
 
         let assignment_node = AssignmentNode {
             identifier: identifier,
+            array_index: array_index,
             expression: expression,
             line: line_number,
         };
