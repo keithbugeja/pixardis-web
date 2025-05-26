@@ -703,6 +703,7 @@ dependencies = [
 name = "web"
 version = "0.1.0"
 dependencies = [
+ "compiler",
  "fastrand",
  "getrandom",
  "instant",
@@ -711,6 +712,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "serde_json",
  "shared",
+ "vm",
  "wasm-bindgen",
  "web-sys",
 ]
