@@ -1,3 +1,4 @@
+#[cfg(target_arch = "wasm32")]
 use std::sync::Mutex;
 
 // Global error collector for WASM builds
@@ -59,7 +60,7 @@ pub struct Logger<'a> {
 }
 
 impl<'a> Logger<'a> {
-    pub fn new(source: &'a str) -> Logger {
+    pub fn new(source: &'a str) -> Logger<'a> {
         let mut logger = Logger {
             source: source,
             newlines: Vec::new(),
