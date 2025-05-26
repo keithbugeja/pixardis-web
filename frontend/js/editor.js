@@ -18,10 +18,10 @@ export async function initializeEditor() {
                     typeKeywords: [
                         'bool', 'int', 'float', 'colour', 'function'
                     ],
-                    
+
                     builtinFunctions: [
-                        '__clear', '__write_box', '__random_int', '__width', '__height', 
-                        '__print', '__pixel', '__wait', '__read_pixel'
+                        '__clear', '__read', '__write', '__write_box', '__write_line', '__random_int', 
+                        '__width', '__height', '__print', '__pixel', '__delay'
                     ],
                     
                     operators: [
