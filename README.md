@@ -70,7 +70,7 @@ pixardis-web/
 
 Found in `compiler/examples/`. Load them in the editor, hit compile, and enjoy watching pixels dance like it’s 1994.
 
-- `snake.ps` – You already know  
+- `pong.ps` – You already know  
 - `rainbow.ps` – Bright colours, no purpose  
 - `fibonacci.ps` – Academic pain  
 - `fancy_clock.ps` – Vaguely functional
