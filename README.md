@@ -25,7 +25,7 @@ Use it. Don’t. I already won.
 - 🦀 **Rust Compiler + VM** – 0% unsafe, 100% unsound. 
 - 🌐 **WebAssembly** – Makes your browser pretend it’s a real OS.
 - 🎨 **Canvas Output** – Because pixels still matter.  
-- 🧪 **Example Programs** – From `fibonacci` to `snake`, because why not?
+- 🧪 **Example Programs** – From `fibonacci` to `pong`, because why not?
 
 ---
 
